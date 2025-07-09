@@ -12,52 +12,41 @@ frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 frame.Active = true
-frame.Draggable = false -- custom drag logic will be used
+frame.Draggable = false -- only the title bar will be draggable
 
--- Custom drag logic for the whole frame except the scrolling list
+-- Title
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.15, 0)
+title.Text = "Sprinkler Remover Script v1.9"
+title.TextColor3 = Color3.new(1, 1, 1)
+title.Font = Enum.Font.SourceSansBold
+title.TextSize = 20
+title.BackgroundTransparency = 1
+title.Parent = frame
+title.Active = true
+
+-- Custom drag logic for title bar only
 local dragging = false
 local dragStart = nil
 local startPos = nil
-
-frame.InputBegan:Connect(function(input)
+title.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        -- Prevent drag if clicking on the scrolling list
-        local target = game:GetService("UserInputService"):GetFocusedTextBox()
-        if input.Target == sprinklerList or (input.Target and input.Target:IsDescendantOf(sprinklerList)) then
-            return
-        end
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
     end
 end)
-
-frame.InputEnded:Connect(function(input)
+title.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
 end)
-
 game:GetService("UserInputService").InputChanged:Connect(function(input)
     if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
         local delta = input.Position - dragStart
         frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
     end
 end)
-
--- Title
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.8"
-title.TextColor3 = Color3.new(1, 1, 1)
-title.Font = Enum.Font.SourceSansBold
-title.TextSize = 20
-title.BackgroundTransparency = 1
-title.Parent = frame
-title.Active = false -- not draggable, just a label
-
--- Remove custom drag logic for title bar
--- Remove resize handle and resizing logic
 
 -- Close Button
 local closeButton = Instance.new("TextButton")
