@@ -122,44 +122,32 @@ local function updateList()
 end
 
 local function scanForSprinklers()
-    local farm = workspace:FindFirstChild("Farm")
-    if not farm then
+    local farmParent = workspace:FindFirstChild("Farm")
+    if not farmParent then
         statusLabel.Text = "Status: Farm not found in workspace"
-        return
-    end
-
-    -- Find farm with player as owner
-    local targetFarm = nil
-    for _, child in ipairs(farm:GetChildren()) do
-        if child:FindFirstChild("Owner") and child.Owner.Value == player.Name then
-            targetFarm = child
-            break
-        end
-    end
-
-    if not targetFarm then
-        statusLabel.Text = "Status: No farm owned by you found"
-        return
-    end
-
-    local objectsPhysical = targetFarm:FindFirstChild("Objects_Physical")
-    if not objectsPhysical then
-        statusLabel.Text = "Status: Objects_Physical not found in your farm"
         return
     end
 
     -- Clear previous list
     foundSprinklers = {}
 
-    -- Find all sprinklers
-    for _, obj in ipairs(objectsPhysical:GetDescendants()) do
-        if obj:IsA("BasePart") and string.find(obj.ClassName, "Sprinkler") then
-            table.insert(foundSprinklers, obj)
+    -- Find all farms with player as owner
+    for _, farm in ipairs(farmParent:GetChildren()) do
+        if farm.Name == "Farm" and farm:FindFirstChild("Owner") and farm.Owner.Value == player.Name then
+            local objectsPhysical = farm:FindFirstChild("Objects_Physical")
+            if objectsPhysical then
+                -- Find all sprinklers in this farm
+                for _, obj in ipairs(objectsPhysical:GetDescendants()) do
+                    if obj:IsA("BasePart") and string.find(obj.ClassName, "Sprinkler") then
+                        table.insert(foundSprinklers, obj)
+                    end
+                end
+            end
         end
     end
 
     updateList()
-    statusLabel.Text = "Status: Found " .. #foundSprinklers .. " sprinkler(s)"
+    statusLabel.Text = "Status: Found " .. #foundSprinklers .. " sprinkler(s) across all farms"
 end
 
 local function renameSprinklers()
