@@ -15,7 +15,7 @@ frame.Parent = gui
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.1"
+title.Text = "Sprinkler Remover Script"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
@@ -77,6 +77,7 @@ renameButton.TextColor3 = Color3.new(1, 1, 1)
 renameButton.BackgroundColor3 = Color3.fromRGB(60, 60, 180)
 renameButton.Parent = frame
 
+-- Status label
 local statusLabel = Instance.new("TextLabel")
 statusLabel.Size = UDim2.new(0.45, 0, 0.4, 0)
 statusLabel.Position = UDim2.new(0.5, 0, 0.5, 0)
@@ -88,6 +89,19 @@ statusLabel.TextWrapped = true
 statusLabel.TextXAlignment = Enum.TextXAlignment.Left
 statusLabel.BackgroundTransparency = 1
 statusLabel.Parent = frame
+
+-- Farm located label (new)
+local farmLocatedLabel = Instance.new("TextLabel")
+farmLocatedLabel.Size = UDim2.new(0.45, 0, 0.1, 0)
+farmLocatedLabel.Position = UDim2.new(0.5, 0, 0.9, 0)
+farmLocatedLabel.Text = ""
+farmLocatedLabel.TextColor3 = Color3.fromRGB(100, 255, 100)
+farmLocatedLabel.Font = Enum.Font.SourceSans
+farmLocatedLabel.TextSize = 14
+farmLocatedLabel.TextWrapped = true
+farmLocatedLabel.TextXAlignment = Enum.TextXAlignment.Left
+farmLocatedLabel.BackgroundTransparency = 1
+farmLocatedLabel.Parent = frame
 
 -- Variables
 local foundSprinklers = {}
@@ -134,11 +148,13 @@ local function findPlayerFarm()
                 local owner = data:FindFirstChild("Owner")
                 if owner and owner.Value == player.Name then
                     statusLabel.Text = "Found your farm! (" .. player.Name .. ")"
+                    farmLocatedLabel.Text = "Located your farm! (" .. player.Name .. ")"
                     return farm
                 end
             end
         end
     end
+    farmLocatedLabel.Text = "your farm is not found"
     return nil
 end
 
