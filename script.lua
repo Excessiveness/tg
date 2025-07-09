@@ -106,7 +106,7 @@ farmLocatedLabel.Parent = frame
 -- Add credits label to the GUI
 local creditsLabel = Instance.new("TextLabel")
 creditsLabel.Size = UDim2.new(1, 0, 0.07, 0)
-creditsLabel.Position = UDim2.new(0, 0, 0.85, 0)
+creditsLabel.Position = UDim2.new(0, -5, 0.93, 0)
 creditsLabel.Text = "Credits: Phynomie"
 creditsLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
 creditsLabel.Font = Enum.Font.SourceSansItalic
