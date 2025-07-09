@@ -12,83 +12,21 @@ frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 frame.Active = true
-frame.Draggable = false -- disable default dragging
+frame.Draggable = true -- enable full frame dragging
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.6"
+title.Text = "Sprinkler Remover Script v1.7"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
 title.BackgroundTransparency = 1
 title.Parent = frame
-title.Active = true
+title.Active = false -- not draggable, just a label
 
-do -- Custom drag logic for title bar
-    local dragging = false
-    local dragStart = nil
-    local startPos = nil
-    title.InputBegan:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = true
-            dragStart = input.Position
-            startPos = frame.Position
-        end
-    end)
-    title.InputEnded:Connect(function(input)
-        if input.UserInputType == Enum.UserInputType.MouseButton1 then
-            dragging = false
-        end
-    end)
-    game:GetService("UserInputService").InputChanged:Connect(function(input)
-        if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
-            local delta = input.Position - dragStart
-            frame.Position = UDim2.new(startPos.X.Scale, startPos.X.Offset + delta.X, startPos.Y.Scale, startPos.Y.Offset + delta.Y)
-        end
-    end)
-end
-
--- Resize handle
-local resizeHandle = Instance.new("Frame")
-resizeHandle.Size = UDim2.new(0, 18, 0, 18)
-resizeHandle.Position = UDim2.new(1, -18, 1, -18)
-resizeHandle.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
-resizeHandle.BorderSizePixel = 0
-resizeHandle.AnchorPoint = Vector2.new(0, 0)
-resizeHandle.Parent = frame
-resizeHandle.Name = "ResizeHandle"
-resizeHandle.Active = true
-resizeHandle.ZIndex = 10
-
-local resizing = false
-local resizeStart = nil
-local startSize = nil
-
-local minWidth, minHeight = 200, 120
-
-resizeHandle.InputBegan:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        resizing = true
-        resizeStart = input.Position
-        startSize = frame.Size
-    end
-end)
-
-resizeHandle.InputEnded:Connect(function(input)
-    if input.UserInputType == Enum.UserInputType.MouseButton1 then
-        resizing = false
-    end
-end)
-
-game:GetService("UserInputService").InputChanged:Connect(function(input)
-    if resizing and input.UserInputType == Enum.UserInputType.MouseMovement then
-        local delta = input.Position - resizeStart
-        local newWidth = math.max(startSize.X.Offset + delta.X, minWidth)
-        local newHeight = math.max(startSize.Y.Offset + delta.Y, minHeight)
-        frame.Size = UDim2.new(startSize.X.Scale, newWidth, startSize.Y.Scale, newHeight)
-    end
-end)
+-- Remove custom drag logic for title bar
+-- Remove resize handle and resizing logic
 
 -- Close Button
 local closeButton = Instance.new("TextButton")
