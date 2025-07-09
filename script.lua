@@ -92,6 +92,7 @@ statusLabel.Parent = frame
 -- Variables
 local foundSprinklers = {}
 local connection = nil
+local playerFarm = nil
 
 -- Functions
 local function updateList()
@@ -121,33 +122,59 @@ local function updateList()
     end
 end
 
-local function scanForSprinklers()
+local function findPlayerFarm()
     local farmParent = workspace:FindFirstChild("Farm")
-    if not farmParent then
-        statusLabel.Text = "Status: Farm not found in workspace"
+    if not farmParent then return nil end
+    
+    for _, farm in ipairs(farmParent:GetChildren()) do
+        local important = farm:FindFirstChild("Important")
+        if important then
+            local data = important:FindFirstChild("Data")
+            if data then
+                local owner = data:FindFirstChild("Owner")
+                if owner and owner.Value == player.Name then
+                    return farm
+                end
+            end
+        end
+    end
+    return nil
+end
+
+local function scanForSprinklers()
+    -- Find player's farm if we don't have it yet
+    if not playerFarm or not playerFarm.Parent then
+        playerFarm = findPlayerFarm()
+        if not playerFarm then
+            statusLabel.Text = "Status: Your farm not found"
+            return
+        end
+    end
+
+    local important = playerFarm:FindFirstChild("Important")
+    if not important then
+        statusLabel.Text = "Status: Important folder not found in your farm"
+        return
+    end
+
+    local objectsPhysical = important:FindFirstChild("Objects_Physical")
+    if not objectsPhysical then
+        statusLabel.Text = "Status: Objects_Physical not found in your farm"
         return
     end
 
     -- Clear previous list
     foundSprinklers = {}
 
-    -- Find all farms with player as owner
-    for _, farm in ipairs(farmParent:GetChildren()) do
-        if farm.Name == "Farm" and farm:FindFirstChild("Owner") and farm.Owner.Value == player.Name then
-            local objectsPhysical = farm:FindFirstChild("Objects_Physical")
-            if objectsPhysical then
-                -- Find all sprinklers in this farm
-                for _, obj in ipairs(objectsPhysical:GetDescendants()) do
-                    if obj:IsA("BasePart") and string.find(obj.ClassName, "Sprinkler") then
-                        table.insert(foundSprinklers, obj)
-                    end
-                end
-            end
+    -- Find all sprinklers
+    for _, obj in ipairs(objectsPhysical:GetDescendants()) do
+        if obj:IsA("BasePart") and string.find(obj.Name, "Sprinkler") then
+            table.insert(foundSprinklers, obj)
         end
     end
 
     updateList()
-    statusLabel.Text = "Status: Found " .. #foundSprinklers .. " sprinkler(s) across all farms"
+    statusLabel.Text = "Status: Found " .. #foundSprinklers .. " sprinkler(s)"
 end
 
 local function renameSprinklers()
