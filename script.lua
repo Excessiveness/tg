@@ -133,6 +133,7 @@ local function findPlayerFarm()
             if data then
                 local owner = data:FindFirstChild("Owner")
                 if owner and owner.Value == player.Name then
+                    statusLabel.Text = "Found your farm! (" .. player.Name .. ")"
                     return farm
                 end
             end
@@ -157,7 +158,8 @@ local function scanForSprinklers()
         return
     end
 
-    local objectsPhysical = important:FindFirstChild("Objects_Physical")
+    -- Fix typo here if needed: use the correct folder name
+    local objectsPhysical = important:FindFirstChild("Objects_Physical") or important:FindFirstChild("Objects_Phyiscal")
     if not objectsPhysical then
         statusLabel.Text = "Status: Objects_Physical not found in your farm"
         return
