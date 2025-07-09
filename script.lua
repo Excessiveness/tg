@@ -15,7 +15,7 @@ frame.Parent = gui
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.0"
+title.Text = "Sprinkler Remover Script v1.1"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
@@ -252,14 +252,14 @@ local function startMonitoring()
     if not important then return end
     local objectsPhysical = important:FindFirstChild("Objects_Physical") or important:FindFirstChild("Objects_Phyiscal")
     if not objectsPhysical then return end
-    -- Listen for sprinklers being added/removed
-    objectsPhysicalConnectionAdded = objectsPhysical.ChildAdded:Connect(function(child)
-        if child:IsA("BasePart") and string.find(child.Name, "Sprinkler") then
+    -- Listen for sprinklers being added/removed anywhere under Objects_Physical
+    objectsPhysicalConnectionAdded = objectsPhysical.DescendantAdded:Connect(function(child)
+        if string.find(child.Name, "Sprinkler") then
             scanForSprinklers()
         end
     end)
-    objectsPhysicalConnectionRemoved = objectsPhysical.ChildRemoved:Connect(function(child)
-        if child:IsA("BasePart") and string.find(child.Name, "Sprinkler") then
+    objectsPhysicalConnectionRemoved = objectsPhysical.DescendantRemoving:Connect(function(child)
+        if string.find(child.Name, "Sprinkler") then
             scanForSprinklers()
         end
     end)
