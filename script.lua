@@ -15,7 +15,7 @@ frame.Parent = gui
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script"
+title.Text = "Sprinkler Remover Script v1.0"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
@@ -107,6 +107,8 @@ farmLocatedLabel.Parent = frame
 local foundSprinklers = {}
 local connection = nil
 local playerFarm = nil
+local objectsPhysicalConnectionAdded = nil
+local objectsPhysicalConnectionRemoved = nil
 
 -- Functions
 local function updateList()
@@ -225,13 +227,42 @@ local function renameSprinklers()
     scanForSprinklers() -- Refresh the list
 end
 
--- Set up monitoring
+local function disconnectSprinklerListeners()
+    if objectsPhysicalConnectionAdded then
+        objectsPhysicalConnectionAdded:Disconnect()
+        objectsPhysicalConnectionAdded = nil
+    end
+    if objectsPhysicalConnectionRemoved then
+        objectsPhysicalConnectionRemoved:Disconnect()
+        objectsPhysicalConnectionRemoved = nil
+    end
+end
+
 local function startMonitoring()
-    if connection then connection:Disconnect() end
-    
-    connection = game:GetService("RunService").Heartbeat:Connect(function()
-        scanForSprinklers()
+    disconnectSprinklerListeners()
+    if not playerFarm or not playerFarm.Parent then
+        playerFarm = findPlayerFarm()
+        if not playerFarm then
+            return
+        end
+    end
+    local important = playerFarm:FindFirstChild("Important")
+    if not important then return end
+    local objectsPhysical = important:FindFirstChild("Objects_Physical") or important:FindFirstChild("Objects_Phyiscal")
+    if not objectsPhysical then return end
+    -- Listen for sprinklers being added/removed
+    objectsPhysicalConnectionAdded = objectsPhysical.ChildAdded:Connect(function(child)
+        if child:IsA("BasePart") and string.find(child.Name, "Sprinkler") then
+            scanForSprinklers()
+        end
     end)
+    objectsPhysicalConnectionRemoved = objectsPhysical.ChildRemoved:Connect(function(child)
+        if child:IsA("BasePart") and string.find(child.Name, "Sprinkler") then
+            scanForSprinklers()
+        end
+    end)
+    -- Initial scan
+    scanForSprinklers()
 end
 
 -- Button connections
@@ -244,4 +275,3 @@ renameButton.MouseButton1Click:Connect(renameSprinklers)
 
 -- Initialize
 startMonitoring()
-scanForSprinklers()
