@@ -11,11 +11,13 @@ frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = gui
+frame.Active = true
+frame.Draggable = true
 
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.3"
+title.Text = "Sprinkler Remover Script v1.4"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
