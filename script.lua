@@ -14,10 +14,51 @@ frame.Parent = gui
 frame.Active = true
 frame.Draggable = true
 
+-- Resize handle
+local resizeHandle = Instance.new("Frame")
+resizeHandle.Size = UDim2.new(0, 18, 0, 18)
+resizeHandle.Position = UDim2.new(1, -18, 1, -18)
+resizeHandle.BackgroundColor3 = Color3.fromRGB(120, 120, 120)
+resizeHandle.BorderSizePixel = 0
+resizeHandle.AnchorPoint = Vector2.new(0, 0)
+resizeHandle.Parent = frame
+resizeHandle.Name = "ResizeHandle"
+resizeHandle.Active = true
+resizeHandle.ZIndex = 10
+
+local dragging = false
+local dragStart = nil
+local startSize = nil
+
+local minWidth, minHeight = 200, 120
+
+resizeHandle.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = true
+        dragStart = input.Position
+        startSize = frame.Size
+    end
+end)
+
+resizeHandle.InputEnded:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 then
+        dragging = false
+    end
+end)
+
+game:GetService("UserInputService").InputChanged:Connect(function(input)
+    if dragging and input.UserInputType == Enum.UserInputType.MouseMovement then
+        local delta = input.Position - dragStart
+        local newWidth = math.max(startSize.X.Offset + delta.X, minWidth)
+        local newHeight = math.max(startSize.Y.Offset + delta.Y, minHeight)
+        frame.Size = UDim2.new(startSize.X.Scale, newWidth, startSize.Y.Scale, newHeight)
+    end
+end)
+
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.4"
+title.Text = "Sprinkler Remover Script v1.5"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
