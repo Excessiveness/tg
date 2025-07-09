@@ -15,7 +15,7 @@ frame.Parent = gui
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.0"
+title.Text = "Sprinkler Remover Script"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
@@ -176,7 +176,6 @@ local function scanForSprinklers()
         return
     end
 
-    -- Fix typo here if needed: use the correct folder name
     local objectsPhysical = important:FindFirstChild("Objects_Physical") or important:FindFirstChild("Objects_Phyiscal")
     if not objectsPhysical then
         statusLabel.Text = "Status: Objects_Physical not found in your farm"
@@ -186,10 +185,13 @@ local function scanForSprinklers()
     -- Clear previous list
     foundSprinklers = {}
 
-    -- Only add objects named 'Sprinkler' or containing 'Sprinkler' (e.g., 'Basic Sprinkler')
+    -- Only add objects named/containing 'Sprinkler' and owned by the local player
     for _, obj in ipairs(objectsPhysical:GetChildren()) do
         if obj:IsA("BasePart") and string.find(obj.Name, "Sprinkler") then
-            table.insert(foundSprinklers, obj)
+            local ownerAttr = obj:GetAttribute("OWNER")
+            if ownerAttr == player.Name then
+                table.insert(foundSprinklers, obj)
+            end
         end
     end
 
