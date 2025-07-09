@@ -15,7 +15,7 @@ frame.Parent = gui
 -- Title
 local title = Instance.new("TextLabel")
 title.Size = UDim2.new(1, 0, 0.15, 0)
-title.Text = "Sprinkler Remover Script v1.1"
+title.Text = "Sprinkler Remover Script v1.2"
 title.TextColor3 = Color3.new(1, 1, 1)
 title.Font = Enum.Font.SourceSansBold
 title.TextSize = 20
@@ -102,6 +102,18 @@ farmLocatedLabel.TextWrapped = true
 farmLocatedLabel.TextXAlignment = Enum.TextXAlignment.Left
 farmLocatedLabel.BackgroundTransparency = 1
 farmLocatedLabel.Parent = frame
+
+-- Add credits label to the GUI
+local creditsLabel = Instance.new("TextLabel")
+creditsLabel.Size = UDim2.new(1, 0, 0.07, 0)
+creditsLabel.Position = UDim2.new(0, 0, 0.93, 0)
+creditsLabel.Text = "Credits: Phynomie"
+creditsLabel.TextColor3 = Color3.fromRGB(180, 180, 180)
+creditsLabel.Font = Enum.Font.SourceSansItalic
+creditsLabel.TextSize = 14
+creditsLabel.BackgroundTransparency = 1
+creditsLabel.TextXAlignment = Enum.TextXAlignment.Right
+creditsLabel.Parent = frame
 
 -- Variables
 local foundSprinklers = {}
