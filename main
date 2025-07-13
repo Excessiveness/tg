@@ -76,12 +76,12 @@ local function simulateClick(x, y)
     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
 end
 
-local function sendNotification(title, text, duration)
+local function sendNotification(title, text, duration, Icon)
     StarterGui:SetCore("SendNotification", {
         Title = title,
         Text = text,
         Duration = duration or 5,
-        Icon = "rbxassetid://6726579484"
+        Icon = icon or "rbxassetid://6726579484"
     })
 end
 
