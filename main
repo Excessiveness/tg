@@ -83,104 +83,103 @@ local function sendNotification(title, text, duration, icon)
 end
 
 local function autoBuyFromShop(shopName, buyEventName, itemType)
+    -- Check sheckles
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
     if sheckles < 1000000000 then
         sendNotification("GAG Script", "You need 1B+ sheckles to auto-buy!")
         return false
     end
 
+    -- Verify shop is open
     local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
-    if not shopGui then
-        warn(shopName.." GUI not found")
-        return false
-    end
+    if not shopGui then return false end
 
+    -- Get scrolling frame
     local scrollingFrame = shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then
-        warn("ScrollingFrame not found in "..shopName)
-        return false
-    end
+    if not scrollingFrame then return false end
 
     local boughtAnything = false
 
+    -- Scan all items
     for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not frame.Name:find("_Padding") then
+        if not frame.Name:find("_Padding") then -- Skip padding frames
             local mainFrame = frame:FindFirstChild("Main_Frame")
-            if not mainFrame then continue end
+            if mainFrame then
+                local stockText = mainFrame:FindFirstChild("Stock_Text")
+                
+                -- Check stock availability
+                if stockText and stockText.Text ~= "X0 Stock" then
+                    local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                    if stockNum and stockNum > 0 then
+                        -- Get item image
+                        local itemImage
+                        if shopName == "Gear_Shop" then
+                            itemImage = mainFrame:FindFirstChild("Gear_Image")
+                        elseif mainFrame:FindFirstChild("CanvasGroup") then
+                            itemImage = mainFrame.CanvasGroup:FindFirstChild("ShopItem_Image")
+                        end
 
-            local stockText = mainFrame:FindFirstChild("Stock_Text")
-            if not stockText or stockText.Text == "X0 Stock" then continue end
+                        -- Buy all available stock
+                        for i = 1, stockNum do
+                            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
+                            task.wait(0.1) -- Anti-flood delay
+                        end
 
-            local stockNum = tonumber(stockText.Text:match("X(%d+)"))
-            if not stockNum or stockNum <= 0 then continue end
-
-            -- Improved image detection
-            local itemImage
-            if shopName == "Gear_Shop" then
-                itemImage = mainFrame:FindFirstChild("Gear_Image")
-            else -- For Seed_Shop and PetShop_UI
-                local canvasGroup = mainFrame:FindFirstChild("CanvasGroup")
-                if canvasGroup then
-                    itemImage = canvasGroup:FindFirstChild("ShopItem_Image")
+                        -- Notification with item image
+                        sendNotification(
+                            "Bought "..stockNum.." "..itemType, 
+                            frame.Name, 
+                            5, 
+                            itemImage and itemImage.Image
+                        )
+                        boughtAnything = true
+                    end
                 end
             end
-
-            for i = 1, stockNum do
-                local success, err = pcall(function()
-                    ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
-                end)
-                if not success then
-                    warn("Failed to buy "..frame.Name..": "..err)
-                    break
-                end
-                task.wait(0.1)
-            end
-
-            sendNotification(
-                "Bought "..stockNum.." "..itemType, 
-                frame.Name, 
-                5, 
-                itemImage and itemImage.Image or nil
-            )
-            boughtAnything = true
         end
     end
+    
     return boughtAnything
 end
-local function autoBuySeeds() return autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds") end
-local function autoBuyGear() return autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear") end
-local function autoBuyEggs() return autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs") end
 
-local autoBuyActive = false
-local buyLoop = nil
 
-local function stopBuyLoop()
-    if buyLoop then
-        coroutine.close(buyLoop)
-        buyLoop = nil
-    end
-    autoBuyActive = false
-end
-
-local function runFullAutoBuyLoop()
+local function runPurchaseLoop()
     while autoBuyActive do
-        local boughtAnything = false
-        
-        boughtAnything = autoBuySeeds() or boughtAnything
+        -- Buy from all shops with 1 second delay between them
+        local boughtSeeds = autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds")
         task.wait(1)
         
-        boughtAnything = autoBuyGear() or boughtAnything
+        local boughtGear = autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear")
         task.wait(1)
         
-        boughtAnything = autoBuyEggs() or boughtAnything
+        local boughtEggs = autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs")
         
-        if boughtAnything then
-            task.wait(5)
+        -- Adjust wait time based on purchases
+        if boughtSeeds or boughtGear or boughtEggs then
+            task.wait(5) -- Short wait if something was bought
         else
-            task.wait(60)
+            task.wait(60) -- Long wait if all shops were empty
         end
     end
 end
+
+local autoBuyActive = false
+local buyLoop
+
+tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
+    autoBuyActive = a
+    if a then
+        buyLoop = coroutine.create(runPurchaseLoop)
+        coroutine.resume(buyLoop)
+        sendNotification("Auto-Buy", "Started shopping loop", 3)
+    else
+        if buyLoop then
+            coroutine.close(buyLoop)
+            buyLoop = nil
+        end
+        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
+    end
+end)
 
 -- UI Elements
 tab:CreateToggle("Anti Collect Fruits", function(a)
@@ -200,19 +199,6 @@ tab3:CreateButton("Sell All Fruits", function()
     task.wait(2)
     simulateClick(724, 366)
     sendNotification("Auto-Sell", "Sold all fruits!", 3)
-end)
-
-tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
-    autoBuyActive = a
-    if a then
-        stopBuyLoop()
-        buyLoop = coroutine.create(runFullAutoBuyLoop)
-        coroutine.resume(buyLoop)
-        sendNotification("Auto-Buy", "Started shopping loop", 3)
-    else
-        stopBuyLoop()
-        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
-    end
 end)
 
 tab2:CreateToggle("Auto Dinosaur Egg", function(a)
