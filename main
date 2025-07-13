@@ -284,6 +284,7 @@ local function startBuyLoop()
     buyLoop = coroutine.create(function()
         while autoBuyActive do
             -- Show the countdown
+            CreateGuiCountDown()
             frame_.Visible = true
             
             -- Run the purchases
