@@ -109,7 +109,7 @@ local function autoBuyAll()
                             ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
                             task.wait(0.1)
                         end
-                        local itemImage = mainFrame:FindFirstChild("CanvasGroup") and mainFrame.CanvasGroup:FindFirstChgild("ShopItem_Image")
+                        local itemImage = mainFrame:FindFirstChild("CanvasGroup") and mainFrame.CanvasGroup:FindFirstChild("ShopItem_Image")
                         sendNotification("Bought Seeds", frame.Name.." x"..stockNum, 3, itemImage and itemImage.Image)
                     end
                 end
