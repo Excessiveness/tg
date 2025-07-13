@@ -37,7 +37,7 @@ tab:CreateButton("Sell fruits", function()
 simulateClick(804, 106)
         task.wait(0.2)
         fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
-        task.wait(1.7)
+        task.wait(2)
         simulateClick(724, 366)
 end)
 
