@@ -217,20 +217,32 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
-local function createCountdownGUI()
-    local countdownGui = Instance.new("ScreenGui")
+local countdownGui
+local countdownFrame
+local countdownTimerText
+local countdownProgressFill
+
+-- Function to create the countdown UI
+local function createCountdownUI()
+    -- Destroy existing UI if it exists
+    if countdownGui then
+        countdownGui:Destroy()
+    end
+
+    -- Create new UI
+    countdownGui = Instance.new("ScreenGui")
     countdownGui.Name = "AutoBuyCountdown"
     countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 50)
-    frame.Position = UDim2.new(0.5, -100, 0.05, 0)
-    frame.AnchorPoint = Vector2.new(0.5, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    frame.BackgroundTransparency = 0.5
-    frame.BorderSizePixel = 0
-    frame.Visible = false
-    frame.Parent = countdownGui
+    countdownFrame = Instance.new("Frame")
+    countdownFrame.Size = UDim2.new(0, 200, 0, 50)
+    countdownFrame.Position = UDim2.new(0.5, -100, 0.05, 0)
+    countdownFrame.AnchorPoint = Vector2.new(0.5, 0)
+    countdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    countdownFrame.BackgroundTransparency = 0.5
+    countdownFrame.BorderSizePixel = 0
+    countdownFrame.Visible = false
+    countdownFrame.Parent = countdownGui
 
     local title = Instance.new("TextLabel")
     title.Size = UDim2.new(1, 0, 0.4, 0)
@@ -240,72 +252,76 @@ local function createCountdownGUI()
     title.TextColor3 = Color3.fromRGB(255, 255, 255)
     title.Font = Enum.Font.Gotham
     title.TextSize = 14
-    title.Parent = frame
+    title.Parent = countdownFrame
 
-    local timerText = Instance.new("TextLabel")
-    timerText.Size = UDim2.new(1, 0, 0.6, 0)
-    timerText.Position = UDim2.new(0, 0, 0.4, 0)
-    timerText.BackgroundTransparency = 1
-    timerText.Text = "60s"
-    timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    timerText.Font = Enum.Font.GothamBold
-    timerText.TextSize = 18
-    timerText.Parent = frame
+    countdownTimerText = Instance.new("TextLabel")
+    countdownTimerText.Size = UDim2.new(1, 0, 0.6, 0)
+    countdownTimerText.Position = UDim2.new(0, 0, 0.4, 0)
+    countdownTimerText.BackgroundTransparency = 1
+    countdownTimerText.Text = "60s"
+    countdownTimerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    countdownTimerText.Font = Enum.Font.GothamBold
+    countdownTimerText.TextSize = 18
+    countdownTimerText.Parent = countdownFrame
 
     local progressBar = Instance.new("Frame")
     progressBar.Size = UDim2.new(1, 0, 0, 3)
     progressBar.Position = UDim2.new(0, 0, 1, -3)
     progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     progressBar.BorderSizePixel = 0
-    progressBar.Parent = frame
+    progressBar.Parent = countdownFrame
 
-    local progressFill = Instance.new("Frame")
-    progressFill.Size = UDim2.new(1, 0, 1, 0)
-    progressFill.Position = UDim2.new(0, 0, 0, 0)
-    progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
-    progressFill.BorderSizePixel = 0
-    progressFill.Parent = progressBar
+    countdownProgressFill = Instance.new("Frame")
+    countdownProgressFill.Size = UDim2.new(1, 0, 1, 0)
+    countdownProgressFill.Position = UDim2.new(0, 0, 0, 0)
+    countdownProgressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
+    countdownProgressFill.BorderSizePixel = 0
+    countdownProgressFill.Parent = progressBar
+end
 
-    return {
-        gui = countdownGui,
-        frame = frame,
-        timerText = timerText,
-        progressFill = progressFill
-    }
+-- Function to clean up the countdown UI
+local function cleanupCountdownUI()
+    if countdownGui then
+        countdownGui:Destroy()
+        countdownGui = nil
+        countdownFrame = nil
+        countdownTimerText = nil
+        countdownProgressFill = nil
+    end
 end
 
 local function startBuyLoop()
-    local countdown = createCountdownGUI()
+    createCountdownUI()
     
     buyLoop = coroutine.create(function()
         while autoBuyActive do
-            countdown.frame.Visible = true
+            -- Show the countdown
+            countdownFrame.Visible = true
             
+            -- Run the purchases
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
             
+            -- Countdown with visual update
             for i = 60, 1, -1 do
                 if not autoBuyActive then break end
                 
-                countdown.timerText.Text = i.."s"
-                countdown.progressFill.Size = UDim2.new(i/60, 0, 1, 0)
+                -- Update display
+                countdownTimerText.Text = i.."s"
+                countdownProgressFill.Size = UDim2.new(i/60, 0, 1, 0)
                 
+                -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(countdown.progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
+                local tween = TweenService:Create(countdownProgressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
                 
                 task.wait(1)
             end
-            
-            if not autoBuyActive then
-                countdown.frame.Visible = false
-            end
         end
         
-        if countdown and countdown.gui then
-            countdown.gui:Destroy()
-        end
+        -- Clean up when loop ends
+        cleanupCountdownUI()
     end)
     coroutine.resume(buyLoop)
 end
@@ -319,6 +335,7 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
         end
     else
         stopBuyLoop()
+        cleanupCountdownUI()
     end
 end)
 
