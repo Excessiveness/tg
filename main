@@ -1,3 +1,4 @@
+I want a way to know when will the next auto buy will happen:
 local library = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Phynomie/growagarden/main/Library"))()
 local VirtualInputManager = game:GetService("VirtualInputManager")
 local UserInputService = game:GetService("UserInputService")
@@ -186,7 +187,7 @@ local function autoBuyEggs()
                         ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(unpack(args))
                         task.wait(0.1)
                     end
-                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.."!")
+                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
                 end
             end
         end
@@ -211,60 +212,8 @@ end)
 
 local autoBuyActive = false
 local buyLoop = nil
-
-local countdownThread = nil
+local countdownTime = 60
 local countdownLabel = nil
-
-local function updateCountdownDisplay()
-    if not countdownLabel then
-        -- Get the Shop button position
-        local shopButton = LocalPlayer.PlayerGui:WaitForChild("Hud_UI"):WaitForChild("SideBtns"):WaitForChild("Shop")
-        local shopPos = shopButton.AbsolutePosition
-        local shopSize = shopButton.AbsoluteSize
-
-        countdownLabel = Instance.new("TextLabel")
-        countdownLabel.Name = "AutoBuyCountdown"
-        countdownLabel.Text = "Next buy in: 60s"
-        countdownLabel.Size = UDim2.new(0, 100, 0, 25)  -- Smaller size to fit on the button
-        countdownLabel.Position = UDim2.new(0, shopPos.X, 0, shopPos.Y - 30)  -- Above the Shop button
-        countdownLabel.AnchorPoint = Vector2.new(0, 0)
-        countdownLabel.BackgroundTransparency = 0.7
-        countdownLabel.BackgroundColor3 = Color3.new(0, 0, 0)
-        countdownLabel.TextColor3 = Color3.new(1, 1, 1)
-        countdownLabel.TextSize = 14
-        countdownLabel.Visible = false
-        countdownLabel.Parent = LocalPlayer.PlayerGui
-    end
-    
-    if autoBuyActive then
-        countdownLabel.Visible = true
-        local remaining = math.max(0, nextBuyTime - os.time())
-        countdownLabel.Text = "Next buy in: " .. remaining .. "s"
-    else
-        countdownLabel.Visible = false
-    end
-end
-
-local function startCountdownUpdater()
-    if countdownThread then
-        coroutine.close(countdownThread) -- Stop existing thread if any
-    end
-    
-    countdownThread = coroutine.create(function()
-        while autoBuyActive and task.wait(1) do -- Stops if autoBuyActive becomes false
-            updateCountdownDisplay()
-        end
-        
-        -- Cleanup when done
-        if countdownLabel then
-            countdownLabel:Destroy()
-            countdownLabel = nil
-        end
-        countdownThread = nil
-    end)
-    
-    coroutine.resume(countdownThread)
-end
 
 local function stopBuyLoop()
     if buyLoop then
@@ -272,34 +221,45 @@ local function stopBuyLoop()
         buyLoop = nil
     end
     autoBuyActive = false
-    
-    -- Stop the countdown updater
-    if countdownThread then
-        coroutine.close(countdownThread)
-        countdownThread = nil
-    end
-    
-    -- Remove the UI element
+    countdownTime = 60
     if countdownLabel then
         countdownLabel:Destroy()
         countdownLabel = nil
     end
 end
 
+local function updateCountdown()
+    if countdownLabel then
+        countdownLabel:Destroy()
+    end
+    
+    countdownLabel = Instance.new("TextLabel")
+    countdownLabel.Size = UDim2.new(0, 200, 0, 30)
+    countdownLabel.Position = UDim2.new(0, 10, 0, 10)
+    countdownLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
+    countdownLabel.BackgroundTransparency = 0.5
+    countdownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
+    countdownLabel.TextScaled = true
+    countdownLabel.Font = Enum.Font.SourceSansBold
+    countdownLabel.Text = "Next Auto Buy: " .. countdownTime .. "s"
+    countdownLabel.Parent = game.CoreGui
+end
+
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
         while autoBuyActive do
-            nextBuyTime = os.time() + 60
+            countdownTime = 60
+            updateCountdown()
+            
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
             
-            -- Start the countdown updater
-            startCountdownUpdater()
-            
-            -- Wait for the next cycle
+            -- Countdown loop
             for i = 1, 60 do
                 if not autoBuyActive then break end
+                countdownTime = 60 - i
+                updateCountdown()
                 task.wait(1)
             end
         end
