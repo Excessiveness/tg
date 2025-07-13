@@ -129,7 +129,7 @@ tab:CreateToggle("Anti Collect Fruits", function(a)
     end
 end)
 
-tab:CreateButton("Sell All Fruits", function()
+tab3:CreateButton("Sell All Fruits", function()
     simulateClick(804, 106)
     task.wait(0.2)
     fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
