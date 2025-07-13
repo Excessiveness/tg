@@ -28,7 +28,7 @@ local function findPlayerFarm()
     for _, farmFolder in ipairs(farms:GetDescendants()) do
         if farmFolder.Name == "Owner" and farmFolder:IsA("StringValue") and farmFolder.Value == username then
             print("Found Your Farm! " .. username)
-            return farmFolder.Parent.Parent.Parent
+            return farmFolder.Parent.Parent.Parent -- Adjust path based on actual hierarchy
         end
     end
     
@@ -45,6 +45,7 @@ local function managePrompts(enable)
     for _, prompt in ipairs(playerFarm:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             if enable then
+                -- Store original state if not already stored
                 if not savedPrompts[prompt] then
                     savedPrompts[prompt] = {
                         Enabled = prompt.Enabled,
@@ -52,10 +53,12 @@ local function managePrompts(enable)
                         ActionText = prompt.ActionText
                     }
                 end
+                -- Disable the prompt
                 prompt.Enabled = false
                 prompt.HoldDuration = math.huge
                 prompt.ActionText = "Disabled"
             else
+                -- Restore original state if we have it
                 if savedPrompts[prompt] then
                     prompt.Enabled = savedPrompts[prompt].Enabled
                     prompt.HoldDuration = savedPrompts[prompt].HoldDuration
@@ -73,32 +76,30 @@ local function simulateClick(x, y)
     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
 end
 
-local function sendNotification(title, text, duration, icon)
+local function sendNotification(title, text, duration)
     StarterGui:SetCore("SendNotification", {
         Title = title,
         Text = text,
         Duration = duration or 5,
-        Icon = icon or "rbxassetid://6726579484"
+        Icon = "rbxassetid://6726579484"
     })
 end
 
-local function autoBuyFromShop(shopName, buyEventName, itemType)
+local function autoBuySeeds()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then
-        sendNotification("GAG Script", "You need 1B+ sheckles to auto-buy!")
-        return false
+    if sheckles < 1000000000 then -- 1 billion
+        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        return
     end
 
-    local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
-    if not shopGui then
-        sendNotification("GAG Script", shopName.." not open!")
-        return false
+    local seedShop = LocalPlayer.PlayerGui:FindFirstChild("Seed_Shop")
+    if not seedShop then
+        sendNotification("GAG Script", "Seed shop not open!")
+        return
     end
 
-    local scrollingFrame = shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return false end
-
-    local boughtAnything = false
+    local scrollingFrame = seedShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+    if not scrollingFrame then return end
 
     for _, frame in ipairs(scrollingFrame:GetChildren()) do
         if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
@@ -108,62 +109,33 @@ local function autoBuyFromShop(shopName, buyEventName, itemType)
             if stockText and stockText.Text ~= "X0 Stock" then
                 local stockNum = tonumber(stockText.Text:match("X(%d+)"))
                 if stockNum and stockNum > 0 then
-                    -- Get item image
-                    local itemImage
-                    if shopName == "Gear_Shop" then
-                        itemImage = mainFrame:FindFirstChild("Gear_Image")
-                    elseif shopName == "Seed_Shop" or shopName == "PetShop_UI" then
-                        local canvasGroup = mainFrame:FindFirstChild("CanvasGroup")
-                        if canvasGroup then
-                            itemImage = canvasGroup:FindFirstChild("ShopItem_Image")
-                        end
-                    end
-                    
                     for i = 1, stockNum do
                         local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(unpack(args))
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
                         task.wait(0.1)
                     end
-                    
-                    sendNotification(
-                        "Bought "..stockNum.." "..itemType, 
-                        frame.Name, 
-                        5, 
-                        itemImage and itemImage.Image
-                    )
-                    boughtAnything = true
+                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." seeds!")
                 end
             end
         end
     end
-    return boughtAnything
 end
 
-local function autoBuySeeds()
-    return autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds")
-end
-
-local function autoBuyGear()
-    return autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear")
-end
-
-local function autoBuyEggs()
-    return autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs")
-end
-
-local function runFullAutoBuyLoop()
-    while autoBuyActive do
-        -- Buy from all shops with 1 second delay between them
-        autoBuySeeds()
-        task.wait(1)
-        autoBuyGear()
-        task.wait(1)
-        autoBuyEggs()
-        
-        -- Wait before next cycle
-        task.wait(60)
+tab:CreateToggle("Anti Collect Fruits", function(a)
+    if a then
+        managePrompts(true)
+    else
+        managePrompts(false)
     end
-end
+end)
+
+tab3:CreateButton("Sell All Fruits", function()
+    simulateClick(804, 106)
+    task.wait(0.2)
+    fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
+    task.wait(2)
+    simulateClick(724, 366)
+end)
 
 local autoBuyActive = false
 local buyLoop = nil
@@ -177,52 +149,35 @@ local function stopBuyLoop()
 end
 
 local function startBuyLoop()
-    buyLoop = coroutine.create(runFullAutoBuyLoop)
+    buyLoop = coroutine.create(function()
+        while autoBuyActive and task.wait(5) do
+            autoBuySeeds()
+        end
+        stopBuyLoop()
+    end)
     coroutine.resume(buyLoop)
 end
 
--- UI Elements
-tab:CreateToggle("Anti Collect Fruits", function(a)
-    if a then
-        managePrompts(true)
-        sendNotification("Farm Protection", "Enabled fruit protection", 3)
-    else
-        managePrompts(false)
-        sendNotification("Farm Protection", "Disabled fruit protection", 3)
-    end
-end)
-
-tab3:CreateButton("Sell All Fruits", function()
-    simulateClick(804, 106)
-    task.wait(0.2)
-    fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
-    task.wait(2)
-    simulateClick(724, 366)
-    sendNotification("Auto-Sell", "Sold all fruits!", 3)
-end)
-
 tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
+    
     if a then
-        stopBuyLoop()
-        startBuyLoop()
-        sendNotification("Auto-Buy", "Started shopping loop", 3)
+        if not buyLoop then
+            startBuyLoop()
+        end
     else
         stopBuyLoop()
-        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
     end
 end)
 
 tab2:CreateToggle("Auto Dinosaur Egg", function(a)
-    sendNotification("Dino Egg", a and "Enabled" or "Disabled", 3)
+    print(a and "Auto Dino Egg: ON" or "Auto Dino Egg: OFF")
 end)
 
 tab3:CreateButton("Sprinker Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Phynomie/tg/refs/heads/main/script.lua"))()
-    sendNotification("Script", "Loaded sprinkler system", 3)
 end)
 
--- Initialize
 task.spawn(function()
     playerFarm = findPlayerFarm()
 end)
