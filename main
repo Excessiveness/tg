@@ -222,10 +222,15 @@ end
 
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
-        while autoBuyActive and task.wait(1) do
+        while autoBuyActive do
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
+            -- Wait 1 minute (60 seconds) before next cycle
+            for i = 1, 60 do
+                if not autoBuyActive then break end
+                task.wait(1)
+            end
         end
         stopBuyLoop()
     end)
