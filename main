@@ -90,38 +90,63 @@ local function autoBuyFromShop(shopName, buyEventName, itemType)
     end
 
     local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
-    if not shopGui then return false end
+    if not shopGui then
+        warn(shopName.." GUI not found")
+        return false
+    end
 
     local scrollingFrame = shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return false end
+    if not scrollingFrame then
+        warn("ScrollingFrame not found in "..shopName)
+        return false
+    end
 
     local boughtAnything = false
 
     for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
-            local mainFrame = frame.Main_Frame
+        if not frame.Name:find("_Padding") then
+            local mainFrame = frame:FindFirstChild("Main_Frame")
+            if not mainFrame then continue end
+
             local stockText = mainFrame:FindFirstChild("Stock_Text")
-            
-            if stockText and stockText.Text ~= "X0 Stock" then
-                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
-                if stockNum and stockNum > 0 then
-                    local itemImage = mainFrame:FindFirstChild("Gear_Image") or 
-                                     mainFrame:FindFirstChild("CanvasGroup"):FindFirstChild("ShopItem_Image")
-                    
-                    for i = 1, stockNum do
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
-                        task.wait(0.1)
-                    end
-                    
-                    sendNotification("Bought "..stockNum.." "..itemType, frame.Name, 5, itemImage and itemImage.Image)
-                    boughtAnything = true
+            if not stockText or stockText.Text == "X0 Stock" then continue end
+
+            local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+            if not stockNum or stockNum <= 0 then continue end
+
+            -- Improved image detection
+            local itemImage
+            if shopName == "Gear_Shop" then
+                itemImage = mainFrame:FindFirstChild("Gear_Image")
+            else -- For Seed_Shop and PetShop_UI
+                local canvasGroup = mainFrame:FindFirstChild("CanvasGroup")
+                if canvasGroup then
+                    itemImage = canvasGroup:FindFirstChild("ShopItem_Image")
                 end
             end
+
+            for i = 1, stockNum do
+                local success, err = pcall(function()
+                    ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
+                end)
+                if not success then
+                    warn("Failed to buy "..frame.Name..": "..err)
+                    break
+                end
+                task.wait(0.1)
+            end
+
+            sendNotification(
+                "Bought "..stockNum.." "..itemType, 
+                frame.Name, 
+                5, 
+                itemImage and itemImage.Image or nil
+            )
+            boughtAnything = true
         end
     end
     return boughtAnything
 end
-
 local function autoBuySeeds() return autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds") end
 local function autoBuyGear() return autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear") end
 local function autoBuyEggs() return autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs") end
