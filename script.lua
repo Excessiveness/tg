@@ -12,7 +12,6 @@ frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BorderSizePixel = 0
 frame.Parent = gui
 frame.Active = true
-frame.Draggable = false -- only the title bar will be draggable
 
 -- Title
 local title = Instance.new("TextLabel")
@@ -29,14 +28,14 @@ title.Active = true
 local dragging = false
 local dragStart = nil
 local startPos = nil
-title.InputBegan:Connect(function(input)
+frame.InputBegan:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = true
         dragStart = input.Position
         startPos = frame.Position
     end
 end)
-title.InputEnded:Connect(function(input)
+frame.InputEnded:Connect(function(input)
     if input.UserInputType == Enum.UserInputType.MouseButton1 then
         dragging = false
     end
