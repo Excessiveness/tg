@@ -85,112 +85,104 @@ local function sendNotification(title, text, duration)
     })
 end
 
-local function autoBuySeeds()
+local function autoBuyAll()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
-        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
-        return
+    if sheckles < 1000000000 then
+        sendNotification("GAG Script", "You need 1B+ sheckles!")
+        return false
     end
 
+    local boughtAnything = false
+
+    -- Seed Shop
     local seedShop = LocalPlayer.PlayerGui:FindFirstChild("Seed_Shop")
-    if not seedShop then
-        sendNotification("GAG Script", "Seed shop not open!")
-        return
-    end
-
-    local scrollingFrame = seedShop.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return end
-
-    for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
-            local mainFrame = frame.Main_Frame
-            local stockText = mainFrame:FindFirstChild("Stock_Text")
-            
-            if stockText and stockText.Text ~= "X0 Stock" then
-                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
-                if stockNum and stockNum > 0 then
-                    for i = 1, stockNum do
-                        local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
-                        task.wait(0.1)
+    if seedShop then
+        local scrollingFrame = seedShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+        if scrollingFrame then
+            for _, frame in ipairs(scrollingFrame:GetChildren()) do
+                if not frame.Name:find("_Padding") then
+                    local mainFrame = frame:FindFirstChild("Main_Frame")
+                    if mainFrame then
+                        local stockText = mainFrame:FindFirstChild("Stock_Text")
+                        if stockText and stockText.Text ~= "X0 Stock" then
+                            local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                            if stockNum and stockNum > 0 then
+                                local itemImage = mainFrame:FindFirstChild("CanvasGroup") and mainFrame.CanvasGroup:FindFirstChild("ShopItem_Image")
+                                for i = 1, stockNum do
+                                    ReplicatedStorage.GameEvents.BuySeedStock:FireServer(frame.Name)
+                                    task.wait(0.1)
+                                end
+                                sendNotification("Bought Seeds", frame.Name.." x"..stockNum, 3, itemImage and itemImage.Image)
+                                boughtAnything = true
+                            end
+                        end
                     end
-                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." seeds!")
                 end
             end
         end
     end
-end
 
-local function autoBuyGears()
-    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
-        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
-        return
-    end
+    task.wait(1) -- Delay between shops
 
+    -- Gear Shop
     local gearShop = LocalPlayer.PlayerGui:FindFirstChild("Gear_Shop")
-    if not gearShop then
-        sendNotification("GAG Script", "Gear shop not open!")
-        return
-    end
-
-    local scrollingFrame = gearShop.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return end
-
-    for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
-            local mainFrame = frame.Main_Frame
-            local stockText = mainFrame:FindFirstChild("Stock_Text")
-            
-            if stockText and stockText.Text ~= "X0 Stock" then
-                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
-                if stockNum and stockNum > 0 then
-                    for i = 1, stockNum do
-                        local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
-                        task.wait(0.1)
+    if gearShop then
+        local scrollingFrame = gearShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+        if scrollingFrame then
+            for _, frame in ipairs(scrollingFrame:GetChildren()) do
+                if not frame.Name:find("_Padding") then
+                    local mainFrame = frame:FindFirstChild("Main_Frame")
+                    if mainFrame then
+                        local stockText = mainFrame:FindFirstChild("Stock_Text")
+                        if stockText and stockText.Text ~= "X0 Stock" then
+                            local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                            if stockNum and stockNum > 0 then
+                                local itemImage = mainFrame:FindFirstChild("Gear_Image")
+                                for i = 1, stockNum do
+                                    ReplicatedStorage.GameEvents.BuyGearStock:FireServer(frame.Name)
+                                    task.wait(0.1)
+                                end
+                                sendNotification("Bought Gear", frame.Name.." x"..stockNum, 3, itemImage and itemImage.Image)
+                                boughtAnything = true
+                            end
+                        end
                     end
-                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
                 end
             end
         end
     end
-end
 
-local function autoBuyEggs()
-    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
-        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
-        return
-    end
+    task.wait(1) -- Delay between shops
 
+    -- Egg Shop
     local eggShop = LocalPlayer.PlayerGui:FindFirstChild("PetShop_UI")
-    if not eggShop then
-        sendNotification("GAG Script", "Gear shop not open!")
-        return
-    end
-
-    local scrollingFrame = eggShop.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return end
-
-    for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
-            local mainFrame = frame.Main_Frame
-            local stockText = mainFrame:FindFirstChild("Stock_Text")
-            
-            if stockText and stockText.Text ~= "X0 Stock" then
-                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
-                if stockNum and stockNum > 0 then
-                    for i = 1, stockNum do
-                        local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(unpack(args))
-                        task.wait(0.1)
+    if eggShop then
+        local scrollingFrame = eggShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+        if scrollingFrame then
+            for _, frame in ipairs(scrollingFrame:GetChildren()) do
+                if not frame.Name:find("_Padding") then
+                    local mainFrame = frame:FindFirstChild("Main_Frame")
+                    if mainFrame then
+                        local stockText = mainFrame:FindFirstChild("Stock_Text")
+                        if stockText and stockText.Text ~= "X0 Stock" then
+                            local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                            if stockNum and stockNum > 0 then
+                                local itemImage = mainFrame:FindFirstChild("CanvasGroup") and mainFrame.CanvasGroup:FindFirstChild("ShopItem_Image")
+                                for i = 1, stockNum do
+                                    ReplicatedStorage.GameEvents.BuyPetEgg:FireServer(frame.Name)
+                                    task.wait(0.1)
+                                end
+                                sendNotification("Bought Egg", frame.Name.." x"..stockNum, 3, itemImage and itemImage.Image)
+                                boughtAnything = true
+                            end
+                        end
                     end
-                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
                 end
             end
         end
     end
+
+    return boughtAnything
 end
 
 tab:CreateToggle("Anti Collect Fruits", function(a)
@@ -220,12 +212,15 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
+
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
-        while autoBuyActive and task.wait(1) do
-            autoBuySeeds()
-            autoBuyGears()
-            autoBuyEggs()
+        while autoBuyActive do
+            if not autoBuyAll() then  -- If nothing was bought
+                task.wait(60)         -- Wait 60 seconds
+            else
+                task.wait(5)          -- Short wait if something was bought
+            end
         end
         stopBuyLoop()
     end)
@@ -234,13 +229,13 @@ end
 
 tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
-    
     if a then
-        if not buyLoop then
-            startBuyLoop()
-        end
+        stopBuyLoop()
+        startBuyLoop()
+        sendNotification("Auto-Buy", "Started shopping loop", 3)
     else
         stopBuyLoop()
+        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
     end
 end)
 
