@@ -85,20 +85,20 @@ local function sendNotification(title, text, duration)
     })
 end
 
-local function autoBuySeeds()
+local function autoBuyFromShop(shopName, buyEventName, itemType)
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
     if sheckles < 1000000000 then -- 1 billion
-        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        sendNotification("GAG Script", "You need 1B+ sheckles to auto-buy!")
         return
     end
 
-    local seedShop = LocalPlayer.PlayerGui:FindFirstChild("Seed_Shop")
-    if not seedShop then
-        sendNotification("GAG Script", "Seed shop not open!")
+    local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
+    if not shopGui then
+        sendNotification("GAG Script", shopName.." not open!")
         return
     end
 
-    local scrollingFrame = seedShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+    local scrollingFrame = shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
     if not scrollingFrame then return end
 
     for _, frame in ipairs(scrollingFrame:GetChildren()) do
@@ -109,16 +109,56 @@ local function autoBuySeeds()
             if stockText and stockText.Text ~= "X0 Stock" then
                 local stockNum = tonumber(stockText.Text:match("X(%d+)"))
                 if stockNum and stockNum > 0 then
+                    -- Get item image
+                    local itemImage
+                    if itemType == "seeds" then
+                        itemImage = mainFrame.CanvasGroup.ShopItem_Image.Image
+                    else -- gear
+                        itemImage = mainFrame.Gear_Image.Image
+                    end
+                    
                     for i = 1, stockNum do
                         local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(unpack(args))
                         task.wait(0.1)
                     end
-                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." seeds!")
+                    
+                    -- Enhanced notification with image
+                    StarterGui:SetCore("SendNotification", {
+                        Title = "Bought "..stockNum.." "..itemType,
+                        Text = frame.Name,
+                        Duration = 5,
+                        Icon = itemImage -- Uses the actual item image
+                    })
                 end
             end
         end
     end
+end
+
+local function autoBuySeeds()
+    autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds")
+end
+
+local function autoBuyGear()
+    autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear")
+end
+
+local function runAutoBuyLoop()
+    autoBuySeeds()  -- Buy seeds first
+    task.wait(0.5)  -- Small delay between shops
+    autoBuyGear()   -- Then buy gear
+end
+
+-- Update the buy loop to use runAutoBuyLoop instead of just autoBuySeeds
+local function startBuyLoop()
+    buyLoop = coroutine.create(function()
+        while autoBuyActive and task.wait(5) do
+            runAutoBuyLoop() -- Handles both seed and gear shops
+        end
+        stopBuyLoop()
+    end)
+    coroutine.resume(buyLoop)
 end
 
 tab:CreateToggle("Anti Collect Fruits", function(a)
