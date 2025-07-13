@@ -6,7 +6,7 @@ local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
 
-local Main = library:CreateWindow("Grow a garden script (Creds to Phy)","Crimson")
+local Main = library:CreateWindow("Grow a garden script (Creds to Phy)", "Crimson")
 
 local tab = Main:CreateTab("Exploits")
 local tab2 = Main:CreateTab("Automation")
@@ -28,7 +28,7 @@ local function findPlayerFarm()
     for _, farmFolder in ipairs(farms:GetDescendants()) do
         if farmFolder.Name == "Owner" and farmFolder:IsA("StringValue") and farmFolder.Value == username then
             print("Found Your Farm! " .. username)
-            return farmFolder.Parent.Parent.Parent -- Adjust path based on actual hierarchy
+            return farmFolder.Parent.Parent.Parent
         end
     end
     
@@ -45,7 +45,6 @@ local function managePrompts(enable)
     for _, prompt in ipairs(playerFarm:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             if enable then
-                -- Store original state if not already stored
                 if not savedPrompts[prompt] then
                     savedPrompts[prompt] = {
                         Enabled = prompt.Enabled,
@@ -53,12 +52,10 @@ local function managePrompts(enable)
                         ActionText = prompt.ActionText
                     }
                 end
-                -- Disable the prompt
                 prompt.Enabled = false
                 prompt.HoldDuration = math.huge
                 prompt.ActionText = "Disabled"
             else
-                -- Restore original state if we have it
                 if savedPrompts[prompt] then
                     prompt.Enabled = savedPrompts[prompt].Enabled
                     prompt.HoldDuration = savedPrompts[prompt].HoldDuration
@@ -76,30 +73,29 @@ local function simulateClick(x, y)
     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
 end
 
-local function sendNotification(title, text, duration)
+local function sendNotification(title, text, duration, icon)
     StarterGui:SetCore("SendNotification", {
         Title = title,
         Text = text,
         Duration = duration or 5,
-        Icon = "rbxassetid://6726579484"
+        Icon = icon or "rbxassetid://6726579484"
     })
 end
 
 local function autoBuyFromShop(shopName, buyEventName, itemType)
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
+    if sheckles < 1000000000 then
         sendNotification("GAG Script", "You need 1B+ sheckles to auto-buy!")
-        return
+        return false
     end
 
     local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
-    if not shopGui then
-        sendNotification("GAG Script", shopName.." not open!")
-        return
-    end
+    if not shopGui then return false end
 
     local scrollingFrame = shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return end
+    if not scrollingFrame then return false end
+
+    local boughtAnything = false
 
     for _, frame in ipairs(scrollingFrame:GetChildren()) do
         if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
@@ -109,73 +105,26 @@ local function autoBuyFromShop(shopName, buyEventName, itemType)
             if stockText and stockText.Text ~= "X0 Stock" then
                 local stockNum = tonumber(stockText.Text:match("X(%d+)"))
                 if stockNum and stockNum > 0 then
-                    -- Get item image
-                    local itemImage
-                    if itemType == "seeds" then
-                        itemImage = mainFrame.CanvasGroup.ShopItem_Image.Image
-                    else -- gear
-                        itemImage = mainFrame.Gear_Image.Image
-                    end
+                    local itemImage = mainFrame:FindFirstChild("Gear_Image") or 
+                                     mainFrame:FindFirstChild("CanvasGroup"):FindFirstChild("ShopItem_Image")
                     
                     for i = 1, stockNum do
-                        local args = {frame.Name}
-                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(unpack(args))
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
                         task.wait(0.1)
                     end
                     
-                    -- Enhanced notification with image
-                    StarterGui:SetCore("SendNotification", {
-                        Title = "Bought "..stockNum.." "..itemType,
-                        Text = frame.Name,
-                        Duration = 5,
-                        Icon = itemImage -- Uses the actual item image
-                    })
+                    sendNotification("Bought "..stockNum.." "..itemType, frame.Name, 5, itemImage and itemImage.Image)
+                    boughtAnything = true
                 end
             end
         end
     end
+    return boughtAnything
 end
 
-local function autoBuySeeds()
-    autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds")
-end
-
-local function autoBuyGear()
-    autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear")
-end
-
-local function runAutoBuyLoop()
-    autoBuySeeds()  -- Buy seeds first
-    task.wait(0.5)  -- Small delay between shops
-    autoBuyGear()   -- Then buy gear
-end
-
--- Update the buy loop to use runAutoBuyLoop instead of just autoBuySeeds
-local function startBuyLoop()
-    buyLoop = coroutine.create(function()
-        while autoBuyActive and task.wait(5) do
-            runAutoBuyLoop() -- Handles both seed and gear shops
-        end
-        stopBuyLoop()
-    end)
-    coroutine.resume(buyLoop)
-end
-
-tab:CreateToggle("Anti Collect Fruits", function(a)
-    if a then
-        managePrompts(true)
-    else
-        managePrompts(false)
-    end
-end)
-
-tab3:CreateButton("Sell All Fruits", function()
-    simulateClick(804, 106)
-    task.wait(0.2)
-    fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
-    task.wait(2)
-    simulateClick(724, 366)
-end)
+local function autoBuySeeds() return autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds") end
+local function autoBuyGear() return autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear") end
+local function autoBuyEggs() return autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs") end
 
 local autoBuyActive = false
 local buyLoop = nil
@@ -188,36 +137,69 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
-local function startBuyLoop()
-    buyLoop = coroutine.create(function()
-        while autoBuyActive and task.wait(5) do
-            autoBuySeeds()
+local function runFullAutoBuyLoop()
+    while autoBuyActive do
+        local boughtAnything = false
+        
+        boughtAnything = autoBuySeeds() or boughtAnything
+        task.wait(1)
+        
+        boughtAnything = autoBuyGear() or boughtAnything
+        task.wait(1)
+        
+        boughtAnything = autoBuyEggs() or boughtAnything
+        
+        if boughtAnything then
+            task.wait(5)
+        else
+            task.wait(60)
         end
-        stopBuyLoop()
-    end)
-    coroutine.resume(buyLoop)
+    end
 end
+
+-- UI Elements
+tab:CreateToggle("Anti Collect Fruits", function(a)
+    if a then
+        managePrompts(true)
+        sendNotification("Farm Protection", "Enabled fruit protection", 3)
+    else
+        managePrompts(false)
+        sendNotification("Farm Protection", "Disabled fruit protection", 3)
+    end
+end)
+
+tab3:CreateButton("Sell All Fruits", function()
+    simulateClick(804, 106)
+    task.wait(0.2)
+    fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
+    task.wait(2)
+    simulateClick(724, 366)
+    sendNotification("Auto-Sell", "Sold all fruits!", 3)
+end)
 
 tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
-    
     if a then
-        if not buyLoop then
-            startBuyLoop()
-        end
+        stopBuyLoop()
+        buyLoop = coroutine.create(runFullAutoBuyLoop)
+        coroutine.resume(buyLoop)
+        sendNotification("Auto-Buy", "Started shopping loop", 3)
     else
         stopBuyLoop()
+        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
     end
 end)
 
 tab2:CreateToggle("Auto Dinosaur Egg", function(a)
-    print(a and "Auto Dino Egg: ON" or "Auto Dino Egg: OFF")
+    sendNotification("Dino Egg", a and "Enabled" or "Disabled", 3)
 end)
 
 tab3:CreateButton("Sprinker Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Phynomie/tg/refs/heads/main/script.lua"))()
+    sendNotification("Script", "Loaded sprinkler system", 3)
 end)
 
+-- Initialize
 task.spawn(function()
     playerFarm = findPlayerFarm()
 end)
