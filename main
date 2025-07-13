@@ -138,12 +138,35 @@ tab3:CreateButton("Sell All Fruits", function()
 end)
 
 local autoBuyActive = false
+local buyLoop = nil
+
+local function stopBuyLoop()
+    if buyLoop then
+        coroutine.close(buyLoop)
+        buyLoop = nil
+    end
+    autoBuyActive = false
+end
+
+local function startBuyLoop()
+    buyLoop = coroutine.create(function()
+        while autoBuyActive and task.wait(5) do
+            autoBuySeeds()
+        end
+        stopBuyLoop()
+    end)
+    coroutine.resume(buyLoop)
+end
+
 tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
     
-    while autoBuyActive do
-        autoBuySeeds()
-        task.wait(5)
+    if a then
+        if not buyLoop then
+            startBuyLoop()
+        end
+    else
+        stopBuyLoop()
     end
 end)
 
