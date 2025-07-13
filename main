@@ -1,10 +1,21 @@
 local library = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Phynomie/growagarden/main/Library"))()
+local VirtualInputManager = game:GetService("VirtualInputManager")
+local UserInputService = game:GetService("UserInputService")
 
 local Main = library:CreateWindow("Grow a garden script (Creds to Phy)","Crimson")
 
 local tab = Main:CreateTab("Exploits")
 local tab2 = Main:CreateTab("Automation")
 local tab3 = Main:CreateTab("Misc")
+
+local function simulateClick(x, y)
+    VirtualInputManager:SendMouseMoveEvent(x, y, game)
+
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, true, game, 1)
+    task.wait(0.1)
+    
+    VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
+end
 
 tab:CreateToggle("Farm",function(a)
     print(a)
@@ -23,70 +34,11 @@ tab:CreateDropdown("Word",{"Sung","Jin","Woo"},function(a)
 end)
 
 tab:CreateButton("Sell fruits", function()
-    -- Locate the sell ImageButton
-    local sellFrame = game:GetService("Players").LocalPlayer.PlayerGui.Teleport_UI.Frame
-    local sellButton = sellFrame:FindFirstChildOfClass("ImageButton") or sellFrame.Sell
-    
-    if not sellButton then
-        warn("❌ Sell ImageButton not found in:")
-        for _, child in ipairs(sellFrame:GetChildren()) do
-            print(child:GetFullName(), child.ClassName)
-        end
-        return
-    end
-
-    print("✅ Found sell button at:", sellButton.AbsolutePosition)
-
-    -- Method 1: Direct event firing (preferred)
-    local function fireClickDirectly()
-        -- Try getconnections first
-        local connections = getconnections(sellButton.MouseButton1Click)
-        if #connections > 0 then
-            for _, conn in ipairs(connections) do
-                pcall(conn.Fire, conn)
-            end
-            return true
-        end
-        
-        -- Fallback to firesignal
-        return pcall(firesignal, sellButton.MouseButton1Click)
-    end
-
-    -- Method 2: Mouse position simulation (fallback)
-    local function simulateMouseClick()
-        local mouse = game:GetService("Players").LocalPlayer:GetMouse()
-        local originalPos = Vector2.new(mouse.X, mouse.Y)
-        
-        -- Calculate button center with safety checks
-        local absPos = sellButton.AbsolutePosition
-        local absSize = sellButton.AbsoluteSize
-        local buttonCenter = Vector2.new(
-            math.clamp(absPos.X + absSize.X/2, 0, workspace.CurrentCamera.ViewportSize.X),
-            math.clamp(absPos.Y + absSize.Y/2, 0, workspace.CurrentCamera.ViewportSize.Y)
-        )
-        
-        mouse.X, mouse.Y = buttonCenter.X, buttonCenter.Y
-        wait(0.2)
-        pcall(firesignal, sellButton.MouseButton1Click)
-        wait(0.2)
-        mouse.X, mouse.Y = originalPos.X, originalPos.Y
-        return true
-    end
-
-    -- Execute click sequence
-    if not fireClickDirectly() then
-        print("⚠️ Using mouse simulation fallback")
-        simulateMouseClick()
-    end
-
-    -- Handle proximity prompt after delay
-    wait(0.5)
-    local virtualInput = game:GetService("VirtualInputManager")
-    virtualInput:SendKeyEvent(true, Enum.KeyCode.E, false, game)
-    wait(0.05)
-    virtualInput:SendKeyEvent(false, Enum.KeyCode.E, false, game)
-
-    print("✅ Sell action completed successfully!")
+simulateClick(804, 106)
+        task.wait(0.2)
+        fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
+        task.wait(1.7)
+        simulateClick(724, 366)
 end)
 
 tab2:CreateButton("Hello",function()
