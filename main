@@ -1,0 +1,75 @@
+local library = loadstring(game:HttpGetAsync("https://raw.githubusercontent.com/Phynomie/growagarden/main/Library"))()
+
+local Main = library:CreateWindow("Grow a garden script (Creds to Phy)","Crimson")
+
+local tab = Main:CreateTab("Exploits")
+local tab2 = Main:CreateTab("Automation")
+local tab3 = Main:CreateTab("Automation")
+
+tab:CreateToggle("Farm",function(a)
+    print(a)
+end)
+
+tab:CreateSlider("Wow",1,16,function(a)
+    print(a)
+end)
+
+tab:CreateCheckbox("Aimbot",function(a)
+    print(a)
+end)
+
+tab:CreateDropdown("Word",{"Sung","Jin","Woo"},function(a)
+    print(a)
+end)
+
+tab:CreateButton("Sell fruits",function()
+    -- Get the sell button
+    local sellButton = game:GetService("Players").LocalPlayer.PlayerGui.Teleport_UI.Frame.Sell
+    
+    -- Simulate mouse click
+    if sellButton then
+        -- Create click event
+        local clickEvent = Instance.new("BindableEvent")
+        clickEvent.Event:Connect(function()
+            -- Get the absolute position of the button
+            local absPos = sellButton.AbsolutePosition
+            local absSize = sellButton.AbsoluteSize
+            
+            -- Simulate mouse movement to the button
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+            local originalPos = Vector2.new(mouse.X, mouse.Y)
+            
+            -- Move mouse to button center
+            mouse.X, mouse.Y = absPos.X + absSize.X/2, absPos.Y + absSize.Y/2
+            
+            -- Fire the mouse click
+            sellButton.MouseButton1Click:Fire()
+            
+            -- Wait a bit
+            wait(0.1)
+            
+            -- Move mouse back to original position
+            mouse.X, mouse.Y = originalPos.X, originalPos.Y
+            
+            -- Wait before pressing E
+            wait(0.4)
+            
+            -- Simulate E key press
+            local virtualInput = game:GetService("VirtualInputManager")
+            virtualInput:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+            wait(0.1)
+            virtualInput:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        end)
+        
+        clickEvent:Fire()
+        clickEvent:Destroy()
+    else
+        warn("Sell button not found!")
+    end
+end)
+
+tab2:CreateButton("Hello",function()
+    print("clicked")
+end)
+
+tab:Show()
