@@ -49,4 +49,8 @@ tab2:CreateToggle("Auto Dinosaur Egg",function(a)
     end
 end)
 
+tab3:CreateButton("Sprinker Script", function()
+    loadstring(game:HttpGet("https://raw.githubusercontent.com/Phynomie/tg/refs/heads/main/script.lua"))()
+end)
+
 tab:Show()
