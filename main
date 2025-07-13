@@ -116,6 +116,7 @@ local function autoBuyAll()
             end
         end
     end
+end
 
 local function autoBuyGears()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
