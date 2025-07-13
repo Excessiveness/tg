@@ -211,6 +211,9 @@ end)
 
 local countdowngui
 local frame_
+local timer_
+local progressbar_
+local progressfill_
 
 local function CreateGuiCountDown()
 
@@ -253,6 +256,7 @@ local function CreateGuiCountDown()
     timerText.Font = Enum.Font.GothamBold
     timerText.TextSize = 18
     timerText.Parent = frame
+    timer_ = timerText
 
     local progressBar = Instance.new("Frame")
     progressBar.Size = UDim2.new(1, 0, 0, 3)
@@ -260,6 +264,7 @@ local function CreateGuiCountDown()
     progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
     progressBar.BorderSizePixel = 0
     progressBar.Parent = frame
+    progressbar_ = progressBar
 
     local progressFill = Instance.new("Frame")
     progressFill.Size = UDim2.new(1, 0, 1, 0)
@@ -267,6 +272,7 @@ local function CreateGuiCountDown()
     progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
     progressFill.BorderSizePixel = 0
     progressFill.Parent = progressBar
+    progressfill_ = progressFill
 end
 
 local autoBuyActive = false
@@ -297,12 +303,12 @@ local function startBuyLoop()
                 if not autoBuyActive then break end
                 
                 -- Update display
-                timerText.Text = i.."s"
-                progressFill.Size = UDim2.new(i/60, 0, 1, 0)
+                timer_.Text = i.."s"
+                progressbar_.Size = UDim2.new(i/60, 0, 1, 0)
                 
                 -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
+                local tween = TweenService:Create(progressfill_, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
                 
                 task.wait(1)
