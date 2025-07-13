@@ -280,11 +280,9 @@ local function startBuyLoop()
             for i = 60, 1, -1 do
                 if not autoBuyActive then break end
                 
-                -- Update display
                 timerText.Text = i.."s"
                 progressFill.Size = UDim2.new(i/60, 0, 1, 0)
                 
-                -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
                 local tween = TweenService:Create(progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
@@ -293,9 +291,7 @@ local function startBuyLoop()
             end
             
             if not autoBuyActive then
-                if countdownGui then
-                    countdownGui:Destroy()
-                end
+                frame.Visible = false
             end
         end
         stopBuyLoop()
@@ -311,9 +307,7 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
             startBuyLoop()
         end
     else
-        if countdownGui then
-            countdownGui:Destroy()
-        end
+        frame.Visible = false
         stopBuyLoop()
     end
 end)
