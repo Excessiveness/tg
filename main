@@ -21,7 +21,7 @@ tab:CreateToggle("Anti Collect Fruits",function(a)
     if a then
         print("on")
     else
-        print("off"))
+        print("off")
     end
 end)
 
@@ -37,7 +37,7 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg",function(a)
     if a then
         print("on")
     else
-        print("off"))
+        print("off")
     end
 end)
 
@@ -45,7 +45,7 @@ tab2:CreateToggle("Auto Dinosaur Egg",function(a)
     if a then
         print("on")
     else
-        print("off"))
+        print("off")
     end
 end)
 
