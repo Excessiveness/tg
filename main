@@ -13,7 +13,6 @@ local tab = Main:CreateTab("Exploits")
 local tab2 = Main:CreateTab("Automation")
 local tab3 = Main:CreateTab("Misc")
 
--- Farm protection system
 local savedPrompts = {}
 local playerFarm = nil
 
@@ -29,7 +28,7 @@ local function findPlayerFarm()
     for _, farmFolder in ipairs(farms:GetDescendants()) do
         if farmFolder.Name == "Owner" and farmFolder:IsA("StringValue") and farmFolder.Value == username then
             print("Found Your Farm! " .. username)
-            return farmFolder.Parent.Parent.Parent -- Adjust path based on actual hierarchy
+            return farmFolder.Parent.Parent.Parent 
         end
     end
     
@@ -46,7 +45,6 @@ local function managePrompts(enable)
     for _, prompt in ipairs(playerFarm:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             if enable then
-                -- Store original state if not already stored
                 if not savedPrompts[prompt] then
                     savedPrompts[prompt] = {
                         Enabled = prompt.Enabled,
@@ -54,12 +52,10 @@ local function managePrompts(enable)
                         ActionText = prompt.ActionText
                     }
                 end
-                -- Disable the prompt
                 prompt.Enabled = false
                 prompt.HoldDuration = math.huge
                 prompt.ActionText = "Disabled"
             else
-                -- Restore original state if we have it
                 if savedPrompts[prompt] then
                     prompt.Enabled = savedPrompts[prompt].Enabled
                     prompt.HoldDuration = savedPrompts[prompt].HoldDuration
@@ -88,7 +84,7 @@ end
 
 local function autoBuySeeds()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
+    if sheckles < 1000000000 then
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -124,7 +120,7 @@ end
 
 local function autoBuyGears()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
+    if sheckles < 1000000000 
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -160,7 +156,7 @@ end
 
 local function autoBuyEggs()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then -- 1 billion
+    if sheckles < 1000000000 then
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -221,86 +217,95 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
-local countdownGui = Instance.new("ScreenGui")
-countdownGui.Name = "AutoBuyCountdown"
-countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+local function createCountdownGUI()
+    local countdownGui = Instance.new("ScreenGui")
+    countdownGui.Name = "AutoBuyCountdown"
+    countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local frame = Instance.new("Frame")
-frame.Size = UDim2.new(0, 200, 0, 50)
-frame.Position = UDim2.new(0.5, -100, 0.05, 0)
-frame.AnchorPoint = Vector2.new(0.5, 0)
-frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-frame.BackgroundTransparency = 0.5
-frame.BorderSizePixel = 0
-frame.Visible = false
-frame.Parent = countdownGui
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 50)
+    frame.Position = UDim2.new(0.5, -100, 0.05, 0)
+    frame.AnchorPoint = Vector2.new(0.5, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Parent = countdownGui
 
-local title = Instance.new("TextLabel")
-title.Size = UDim2.new(1, 0, 0.4, 0)
-title.Position = UDim2.new(0, 0, 0, 0)
-title.BackgroundTransparency = 1
-title.Text = "Next Auto-Buy In:"
-title.TextColor3 = Color3.fromRGB(255, 255, 255)
-title.Font = Enum.Font.Gotham
-title.TextSize = 14
-title.Parent = frame
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.4, 0)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Next Auto-Buy In:"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.Gotham
+    title.TextSize = 14
+    title.Parent = frame
 
-local timerText = Instance.new("TextLabel")
-timerText.Size = UDim2.new(1, 0, 0.6, 0)
-timerText.Position = UDim2.new(0, 0, 0.4, 0)
-timerText.BackgroundTransparency = 1
-timerText.Text = "60s"
-timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
-timerText.Font = Enum.Font.GothamBold
-timerText.TextSize = 18
-timerText.Parent = frame
+    local timerText = Instance.new("TextLabel")
+    timerText.Size = UDim2.new(1, 0, 0.6, 0)
+    timerText.Position = UDim2.new(0, 0, 0.4, 0)
+    timerText.BackgroundTransparency = 1
+    timerText.Text = "60s"
+    timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    timerText.Font = Enum.Font.GothamBold
+    timerText.TextSize = 18
+    timerText.Parent = frame
 
-local progressBar = Instance.new("Frame")
-progressBar.Size = UDim2.new(1, 0, 0, 3)
-progressBar.Position = UDim2.new(0, 0, 1, -3)
-progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-progressBar.BorderSizePixel = 0
-progressBar.Parent = frame
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(1, 0, 0, 3)
+    progressBar.Position = UDim2.new(0, 0, 1, -3)
+    progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = frame
 
-local progressFill = Instance.new("Frame")
-progressFill.Size = UDim2.new(1, 0, 1, 0)
-progressFill.Position = UDim2.new(0, 0, 0, 0)
-progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
-progressFill.BorderSizePixel = 0
-progressFill.Parent = progressBar
+    local progressFill = Instance.new("Frame")
+    progressFill.Size = UDim2.new(1, 0, 1, 0)
+    progressFill.Position = UDim2.new(0, 0, 0, 0)
+    progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60)
+    progressFill.BorderSizePixel = 0
+    progressFill.Parent = progressBar
+
+    return {
+        gui = countdownGui,
+        frame = frame,
+        timerText = timerText,
+        progressFill = progressFill
+    }
+end
 
 local function startBuyLoop()
+    local countdown = createCountdownGUI()
+    
     buyLoop = coroutine.create(function()
         while autoBuyActive do
-            -- Show the countdown
-            frame.Visible = true
+            countdown.frame.Visible = true
             
-            -- Run the purchases
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
             
-            -- Countdown with visual update
             for i = 60, 1, -1 do
                 if not autoBuyActive then break end
                 
-                -- Update display
-                timerText.Text = i.."s"
-                progressFill.Size = UDim2.new(i/60, 0, 1, 0)
+                countdown.timerText.Text = i.."s"
+                countdown.progressFill.Size = UDim2.new(i/60, 0, 1, 0)
                 
-                -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
+                local tween = TweenService:Create(countdown.progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
                 
                 task.wait(1)
             end
             
             if not autoBuyActive then
-                frame.Visible = false
+                countdown.frame.Visible = false
             end
         end
-        stopBuyLoop()
+        
+        if countdown and countdown.gui then
+            countdown.gui:Destroy()
+        end
     end)
     coroutine.resume(buyLoop)
 end
@@ -313,7 +318,6 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
             startBuyLoop()
         end
     else
-        frame.Visible = false
         stopBuyLoop()
     end
 end)
