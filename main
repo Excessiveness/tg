@@ -17,6 +17,12 @@ local tab3 = Main:CreateTab("Misc")
 local savedPrompts = {}
 local playerFarm = nil
 
+-- Auto buy countdown variables
+local autoBuyActive = false
+local buyLoop = nil
+local countdownLabel = nil
+local countdownActive = false
+
 local function findPlayerFarm()
     local username = LocalPlayer.Name
     local farms = workspace:FindFirstChild("Farm")
@@ -210,56 +216,35 @@ tab3:CreateButton("Sell All Fruits", function()
     simulateClick(724, 366)
 end)
 
-local autoBuyActive = false
-local buyLoop = nil
-local countdownTime = 60
-local countdownLabel = nil
-
 local function stopBuyLoop()
     if buyLoop then
         coroutine.close(buyLoop)
         buyLoop = nil
     end
     autoBuyActive = false
-    countdownTime = 60
+    countdownActive = false
     if countdownLabel then
         countdownLabel:Destroy()
         countdownLabel = nil
     end
 end
 
-local function updateCountdown()
+local function updateCountdown(secondsLeft)
     if countdownLabel then
-        countdownLabel:Destroy()
+        countdownLabel.Text = "Next Auto Buy: " .. secondsLeft .. "s"
     end
-    
-    countdownLabel = Instance.new("TextLabel")
-    countdownLabel.Size = UDim2.new(0, 200, 0, 30)
-    countdownLabel.Position = UDim2.new(0, 10, 0, 10)
-    countdownLabel.BackgroundColor3 = Color3.fromRGB(0, 0, 0)
-    countdownLabel.BackgroundTransparency = 0.5
-    countdownLabel.TextColor3 = Color3.fromRGB(255, 255, 255)
-    countdownLabel.TextScaled = true
-    countdownLabel.Font = Enum.Font.SourceSansBold
-    countdownLabel.Text = "Next Auto Buy: " .. countdownTime .. "s"
-    countdownLabel.Parent = game.CoreGui
 end
 
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
         while autoBuyActive do
-            countdownTime = 60
-            updateCountdown()
-            
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
-            
-            -- Countdown loop
+            -- Wait 1 minute (60 seconds) before next cycle
             for i = 1, 60 do
                 if not autoBuyActive then break end
-                countdownTime = 60 - i
-                updateCountdown()
+                updateCountdown(60 - i)
                 task.wait(1)
             end
         end
@@ -272,6 +257,12 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
     
     if a then
+        -- Create countdown label
+        if not countdownLabel then
+            countdownLabel = tab2:CreateLabel("Next Auto Buy: 60s")
+        end
+        countdownActive = true
+        
         if not buyLoop then
             startBuyLoop()
         end
