@@ -217,18 +217,23 @@ local countdownLabel = nil
 
 local function updateCountdownDisplay()
     if not countdownLabel then
+        -- Get the Shop button position
+        local shopButton = LocalPlayer.PlayerGui:WaitForChild("Hud_UI"):WaitForChild("SideBtns"):WaitForChild("Shop")
+        local shopPos = shopButton.AbsolutePosition
+        local shopSize = shopButton.AbsoluteSize
+
         countdownLabel = Instance.new("TextLabel")
         countdownLabel.Name = "AutoBuyCountdown"
         countdownLabel.Text = "Next buy in: 60s"
-        countdownLabel.Size = UDim2.new(0, 200, 0, 30)
-        countdownLabel.Position = UDim2.new(0.5, -100, 0, 10)
-        countdownLabel.AnchorPoint = Vector2.new(0.5, 0)
-        countdownLabel.BackgroundTransparency = 0.5
+        countdownLabel.Size = UDim2.new(0, 100, 0, 25)  -- Smaller size to fit on the button
+        countdownLabel.Position = UDim2.new(0, shopPos.X, 0, shopPos.Y - 30)  -- Above the Shop button
+        countdownLabel.AnchorPoint = Vector2.new(0, 0)
+        countdownLabel.BackgroundTransparency = 0.7
         countdownLabel.BackgroundColor3 = Color3.new(0, 0, 0)
         countdownLabel.TextColor3 = Color3.new(1, 1, 1)
         countdownLabel.TextSize = 14
         countdownLabel.Visible = false
-        countdownLabel.Parent = LocalPlayer:WaitForChild("PlayerGui")
+        countdownLabel.Parent = LocalPlayer.PlayerGui
     end
     
     if autoBuyActive then
