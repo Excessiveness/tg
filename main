@@ -26,15 +26,53 @@ tab:CreateButton("Sell fruits",function()
     -- Get the sell button
     local sellButton = game:GetService("Players").LocalPlayer.PlayerGui.Teleport_UI.Frame.Sell
     
-    if sellButton then 
-    sellButton.MouseButton1Click:Connect(function()
-        print("Button clicked!") -- Example action
-    end)
-
-    -- Trigger the event manually
-    -- sellButton.MouseButton1Click:Fire()
+    if sellButton then
+        -- Method 1: Direct click simulation (works in most cases)
+        local success = pcall(function()
+            -- Get all connections to the click event
+            local connections = getconnections(sellButton.MouseButton1Click)
+            
+            -- Fire each connection
+            for _, connection in pairs(connections) do
+                connection:Fire()
+            end
+            
+            -- Alternative: Fire the event directly if above doesn't work
+            firesignal(sellButton.MouseButton1Click)
+        end)
+        
+        -- Method 2: Mouse position simulation (fallback)
+        if not success then
+            local mouse = game:GetService("Players").LocalPlayer:GetMouse()
+            local originalPos = Vector2.new(mouse.X, mouse.Y)
+            
+            -- Calculate button center position
+            local absPos = sellButton.AbsolutePosition
+            local absSize = sellButton.AbsoluteSize
+            local buttonCenter = Vector2.new(absPos.X + absSize.X/2, absPos.Y + absSize.Y/2)
+            
+            -- Move mouse to button
+            mouse.X, mouse.Y = buttonCenter.X, buttonCenter.Y
+            wait(0.1)
+            
+            -- Fire click event
+            sellButton.MouseButton1Click:Fire()
+            wait(0.1)
+            
+            -- Return mouse to original position
+            mouse.X, mouse.Y = originalPos.X, originalPos.Y
+        end
+        
+        -- Wait and simulate E key press for proximity prompt
+        wait(0.5)
+        local virtualInput = game:GetService("VirtualInputManager")
+        virtualInput:SendKeyEvent(true, Enum.KeyCode.E, false, game)
+        wait(0.1)
+        virtualInput:SendKeyEvent(false, Enum.KeyCode.E, false, game)
+        
+        print("Successfully sold fruits!")
     else
-        warn("Sell button not found!")
+        warn("Sell button not found in PlayerGui!")
     end
 end)
 
