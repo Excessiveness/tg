@@ -17,32 +17,36 @@ local function simulateClick(x, y)
     VirtualInputManager:SendMouseButtonEvent(x, y, 0, false, game, 1)
 end
 
-tab:CreateToggle("Farm",function(a)
-    print(a)
+tab:CreateToggle("Anti Collect Fruits",function(a)
+    if a then
+        print("on")
+    else
+        print("off"))
+    end
 end)
 
-tab:CreateSlider("Wow",1,16,function(a)
-    print(a)
-end)
-
-tab:CreateCheckbox("Aimbot",function(a)
-    print(a)
-end)
-
-tab:CreateDropdown("Word",{"Sung","Jin","Woo"},function(a)
-    print(a)
-end)
-
-tab:CreateButton("Sell fruits", function()
-simulateClick(804, 106)
+tab:CreateButton("Sell All Fts", function()
+        simulateClick(804, 106)
         task.wait(0.2)
         fireproximityprompt(workspace.NPCS.Steven.HumanoidRootPart.ProximityPrompt)
         task.wait(2)
         simulateClick(724, 366)
 end)
 
-tab2:CreateButton("Hello",function()
-    print("clicked")
+tab2:CreateToggle("Auto Buy Seed/Gear/Egg",function(a)
+    if a then
+        print("on")
+    else
+        print("off"))
+    end
+end)
+
+tab2:CreateToggle("Auto Dinosaur Egg",function(a)
+    if a then
+        print("on")
+    else
+        print("off"))
+    end
 end)
 
 tab:Show()
