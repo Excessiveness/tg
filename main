@@ -157,6 +157,42 @@ local function autoBuyGears()
     end
 end
 
+local function autoBuyEggs()
+    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
+    if sheckles < 1000000000 then -- 1 billion
+        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        return
+    end
+
+    local eggShop = LocalPlayer.PlayerGui:FindFirstChild("PetShop_UI")
+    if not eggShop then
+        sendNotification("GAG Script", "Gear shop not open!")
+        return
+    end
+
+    local scrollingFrame = eggShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+    if not scrollingFrame then return end
+
+    for _, frame in ipairs(scrollingFrame:GetChildren()) do
+        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
+            local mainFrame = frame.Main_Frame
+            local stockText = mainFrame:FindFirstChild("Stock_Text")
+            
+            if stockText and stockText.Text ~= "X0 Stock" then
+                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                if stockNum and stockNum > 0 then
+                    for i = 1, stockNum do
+                        local args = {frame.Name}
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(unpack(args))
+                        task.wait(0.1)
+                    end
+                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
+                end
+            end
+        end
+    end
+end
+
 tab:CreateToggle("Anti Collect Fruits", function(a)
     if a then
         managePrompts(true)
@@ -186,10 +222,10 @@ end
 
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
-        while autoBuyActive and task.wait(5) do
+        while autoBuyActive and task.wait(1) do
             autoBuySeeds()
-            task.wait(1)
             autoBuyGears()
+            autoBuyEggs()
         end
         stopBuyLoop()
     end)
