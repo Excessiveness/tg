@@ -5,7 +5,6 @@ local Players = game:GetService("Players")
 local LocalPlayer = Players.LocalPlayer
 local ReplicatedStorage = game:GetService("ReplicatedStorage")
 local StarterGui = game:GetService("StarterGui")
-local TweenService = game:GetService("TweenService")
 
 local Main = library:CreateWindow("Grow a garden script (Creds to Phy)","Crimson")
 
@@ -13,6 +12,7 @@ local tab = Main:CreateTab("Exploits")
 local tab2 = Main:CreateTab("Automation")
 local tab3 = Main:CreateTab("Misc")
 
+-- Farm protection system
 local savedPrompts = {}
 local playerFarm = nil
 
@@ -28,7 +28,7 @@ local function findPlayerFarm()
     for _, farmFolder in ipairs(farms:GetDescendants()) do
         if farmFolder.Name == "Owner" and farmFolder:IsA("StringValue") and farmFolder.Value == username then
             print("Found Your Farm! " .. username)
-            return farmFolder.Parent.Parent.Parent 
+            return farmFolder.Parent.Parent.Parent -- Adjust path based on actual hierarchy
         end
     end
     
@@ -45,6 +45,7 @@ local function managePrompts(enable)
     for _, prompt in ipairs(playerFarm:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
             if enable then
+                -- Store original state if not already stored
                 if not savedPrompts[prompt] then
                     savedPrompts[prompt] = {
                         Enabled = prompt.Enabled,
@@ -52,10 +53,12 @@ local function managePrompts(enable)
                         ActionText = prompt.ActionText
                     }
                 end
+                -- Disable the prompt
                 prompt.Enabled = false
                 prompt.HoldDuration = math.huge
                 prompt.ActionText = "Disabled"
             else
+                -- Restore original state if we have it
                 if savedPrompts[prompt] then
                     prompt.Enabled = savedPrompts[prompt].Enabled
                     prompt.HoldDuration = savedPrompts[prompt].HoldDuration
@@ -84,7 +87,7 @@ end
 
 local function autoBuySeeds()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then
+    if sheckles < 1000000000 then -- 1 billion
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -120,7 +123,7 @@ end
 
 local function autoBuyGears()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 
+    if sheckles < 1000000000 then -- 1 billion
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -156,7 +159,7 @@ end
 
 local function autoBuyEggs()
     local sheckles = LocalPlayer.leaderstats.Sheckles.Value
-    if sheckles < 1000000000 then
+    if sheckles < 1000000000 then -- 1 billion
         sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
         return
     end
@@ -206,6 +209,66 @@ tab3:CreateButton("Sell All Fruits", function()
     simulateClick(724, 366)
 end)
 
+local countdowngui
+local frame_
+
+local function CreateGuiCountDown()
+
+    if countdowngui ~= nil then
+        countdowngui:Destroy()
+    end
+
+    local countdownGui = Instance.new("ScreenGui")
+    countdownGui.Name = "AutoBuyCountdown"
+    countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+    countdowngui = countdownGui
+
+    local frame = Instance.new("Frame")
+    frame.Size = UDim2.new(0, 200, 0, 50)
+    frame.Position = UDim2.new(0.5, -100, 0.05, 0)
+    frame.AnchorPoint = Vector2.new(0.5, 0)
+    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+    frame.BackgroundTransparency = 0.5
+    frame.BorderSizePixel = 0
+    frame.Visible = false
+    frame.Parent = countdownGui
+    frame_ = frame
+
+    local title = Instance.new("TextLabel")
+    title.Size = UDim2.new(1, 0, 0.4, 0)
+    title.Position = UDim2.new(0, 0, 0, 0)
+    title.BackgroundTransparency = 1
+    title.Text = "Next Auto-Buy In:"
+    title.TextColor3 = Color3.fromRGB(255, 255, 255)
+    title.Font = Enum.Font.Gotham
+    title.TextSize = 14
+    title.Parent = frame
+
+    local timerText = Instance.new("TextLabel")
+    timerText.Size = UDim2.new(1, 0, 0.6, 0)
+    timerText.Position = UDim2.new(0, 0, 0.4, 0)
+    timerText.BackgroundTransparency = 1
+    timerText.Text = "60s"
+    timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+    timerText.Font = Enum.Font.GothamBold
+    timerText.TextSize = 18
+    timerText.Parent = frame
+
+    local progressBar = Instance.new("Frame")
+    progressBar.Size = UDim2.new(1, 0, 0, 3)
+    progressBar.Position = UDim2.new(0, 0, 1, -3)
+    progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+    progressBar.BorderSizePixel = 0
+    progressBar.Parent = frame
+
+    local progressFill = Instance.new("Frame")
+    progressFill.Size = UDim2.new(1, 0, 1, 0)
+    progressFill.Position = UDim2.new(0, 0, 0, 0)
+    progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
+    progressFill.BorderSizePixel = 0
+    progressFill.Parent = progressBar
+end
+
 local autoBuyActive = false
 local buyLoop = nil
 
@@ -217,86 +280,11 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
-local countdownGui
-local countdownFrame
-local countdownTimerText
-local countdownProgressFill
-
--- Function to create the countdown UI
-local function createCountdownUI()
-    -- Destroy existing UI if it exists
-    if countdownGui then
-        countdownGui:Destroy()
-    end
-
-    -- Create new UI
-    countdownGui = Instance.new("ScreenGui")
-    countdownGui.Name = "AutoBuyCountdown"
-    countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-
-    countdownFrame = Instance.new("Frame")
-    countdownFrame.Size = UDim2.new(0, 200, 0, 50)
-    countdownFrame.Position = UDim2.new(0.5, -100, 0.05, 0)
-    countdownFrame.AnchorPoint = Vector2.new(0.5, 0)
-    countdownFrame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    countdownFrame.BackgroundTransparency = 0.5
-    countdownFrame.BorderSizePixel = 0
-    countdownFrame.Visible = false
-    countdownFrame.Parent = countdownGui
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0.4, 0)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "Next Auto-Buy In:"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.Gotham
-    title.TextSize = 14
-    title.Parent = countdownFrame
-
-    countdownTimerText = Instance.new("TextLabel")
-    countdownTimerText.Size = UDim2.new(1, 0, 0.6, 0)
-    countdownTimerText.Position = UDim2.new(0, 0, 0.4, 0)
-    countdownTimerText.BackgroundTransparency = 1
-    countdownTimerText.Text = "60s"
-    countdownTimerText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    countdownTimerText.Font = Enum.Font.GothamBold
-    countdownTimerText.TextSize = 18
-    countdownTimerText.Parent = countdownFrame
-
-    local progressBar = Instance.new("Frame")
-    progressBar.Size = UDim2.new(1, 0, 0, 3)
-    progressBar.Position = UDim2.new(0, 0, 1, -3)
-    progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    progressBar.BorderSizePixel = 0
-    progressBar.Parent = countdownFrame
-
-    countdownProgressFill = Instance.new("Frame")
-    countdownProgressFill.Size = UDim2.new(1, 0, 1, 0)
-    countdownProgressFill.Position = UDim2.new(0, 0, 0, 0)
-    countdownProgressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
-    countdownProgressFill.BorderSizePixel = 0
-    countdownProgressFill.Parent = progressBar
-end
-
--- Function to clean up the countdown UI
-local function cleanupCountdownUI()
-    if countdownGui then
-        countdownGui:Destroy()
-        countdownGui = nil
-        countdownFrame = nil
-        countdownTimerText = nil
-        countdownProgressFill = nil
-    end
-end
-
 local function startBuyLoop()
-    createCountdownUI()
-    
     buyLoop = coroutine.create(function()
         while autoBuyActive do
             -- Show the countdown
-            countdownFrame.Visible = true
+            frame_.Visible = true
             
             -- Run the purchases
             autoBuySeeds()
@@ -308,20 +296,24 @@ local function startBuyLoop()
                 if not autoBuyActive then break end
                 
                 -- Update display
-                countdownTimerText.Text = i.."s"
-                countdownProgressFill.Size = UDim2.new(i/60, 0, 1, 0)
+                timerText.Text = i.."s"
+                progressFill.Size = UDim2.new(i/60, 0, 1, 0)
                 
                 -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(countdownProgressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
+                local tween = TweenService:Create(progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
                 
                 task.wait(1)
             end
+            
+            if not autoBuyActive then
+                if countdowngui ~= nil then
+                    countdowngui:Destroy()
+                end
+            end
         end
-        
-        -- Clean up when loop ends
-        cleanupCountdownUI()
+        stopBuyLoop()
     end)
     coroutine.resume(buyLoop)
 end
@@ -334,8 +326,10 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
             startBuyLoop()
         end
     else
+        if countdowngui ~= nil then
+            countdowngui:Destroy()
+        end
         stopBuyLoop()
-        cleanupCountdownUI()
     end
 end)
 
@@ -345,6 +339,10 @@ end)
 
 tab3:CreateButton("Sprinker Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Phynomie/tg/refs/heads/main/script.lua"))()
+end)
+
+task.spawn(function()
+    playerFarm = findPlayerFarm()
 end)
 
 tab:Show()
