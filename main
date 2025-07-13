@@ -85,74 +85,109 @@ local function sendNotification(title, text, duration)
     })
 end
 
-local function autoBuyFromShop(shopName, buyEventName, itemType)
-    -- Check sheckles first
-    if LocalPlayer.leaderstats.Sheckles.Value < 1000000000 then
-        sendNotification("GAG Script", "You need 1B+ sheckles!")
-        return false
+local function autoBuyAll()
+    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
+    if sheckles < 1000000000 then -- 1 billion
+        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        return
     end
 
-    local shopGui = LocalPlayer.PlayerGui:FindFirstChild(shopName)
-    if not shopGui then return false end
-
-    local scrollingFrame = shopGui.Frame:FindFirstChild("ScrollingFrame") or shopGui.Frame:FindFirstChildOfClass("ScrollingFrame")
-    if not scrollingFrame then return false end
-
-    local boughtAnything = false
-
-    for _, frame in ipairs(scrollingFrame:GetChildren()) do
-        if not string.find(frame.Name, "_Padding") then
-            local mainFrame = frame:FindFirstChild("Main_Frame")
-            if mainFrame then
-                local stockText = mainFrame:FindFirstChild("Stock_Text")
-                if stockText and stockText.Text ~= "X0 Stock" then
-                    local stockNum = tonumber(string.match(stockText.Text, "X(%d+)"))
-                    if stockNum and stockNum > 0 then
-                        -- Get item image based on shop type
-                        local itemImage
-                        if shopName == "Gear_Shop" then
-                            itemImage = mainFrame:FindFirstChild("Gear_Image")
-                        else -- For Seed_Shop and PetShop_UI
-                            local canvasGroup = mainFrame:FindFirstChild("CanvasGroup")
-                            itemImage = canvasGroup and canvasGroup:FindFirstChild("ShopItem_Image")
-                        end
-
-                        -- Make purchases
-                        for i = 1, stockNum do
-                            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild(buyEventName):FireServer(frame.Name)
+    local seedShop = LocalPlayer.PlayerGui:FindFirstChild("Seed_Shop")
+    if seedShop then
+        local scrollingFrame = seedShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+        if scrollingFrame then
+            for _, frame in ipairs(scrollingFrame:GetChildren()) do
+                if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
+                    local mainFrame = frame.Main_Frame
+                    local stockText = mainFrame:FindFirstChild("Stock_Text")
+            
+                    if stockText and stockText.Text ~= "X0 Stock" then
+                        local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                        if stockNum and stockNum > 0 then
+                            for i = 1, stockNum do
+                            local args = {frame.Name}
+                            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuySeedStock"):FireServer(unpack(args))
                             task.wait(0.1)
                         end
-
-                        sendNotification(
-                            "Bought "..itemType,
-                            frame.Name.." x"..stockNum,
-                            3,
-                            itemImage and itemImage.Image
-                        )
-                        boughtAnything = true
+                        local itemImage = mainFrame:FindFirstChild("CanvasGroup") and mainFrame.CanvasGroup:FindFirstChgild("ShopItem_Image")
+                        sendNotification("Bought Seeds", frame.Name.." x"..stockNum, 3, itemImage and itemImage.Image)
                     end
                 end
             end
         end
     end
-    
-    return boughtAnything
+
+local function autoBuyGears()
+    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
+    if sheckles < 1000000000 then -- 1 billion
+        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        return
+    end
+
+    local gearShop = LocalPlayer.PlayerGui:FindFirstChild("Gear_Shop")
+    if not gearShop then
+        sendNotification("GAG Script", "Gear shop not open!")
+        return
+    end
+
+    local scrollingFrame = gearShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+    if not scrollingFrame then return end
+
+    for _, frame in ipairs(scrollingFrame:GetChildren()) do
+        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
+            local mainFrame = frame.Main_Frame
+            local stockText = mainFrame:FindFirstChild("Stock_Text")
+            
+            if stockText and stockText.Text ~= "X0 Stock" then
+                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                if stockNum and stockNum > 0 then
+                    for i = 1, stockNum do
+                        local args = {frame.Name}
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyGearStock"):FireServer(unpack(args))
+                        task.wait(0.1)
+                    end
+                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
+                end
+            end
+        end
+    end
 end
 
-local function runPurchaseCycle()
-    -- Process all shops in sequence
-    local boughtSeeds = autoBuyFromShop("Seed_Shop", "BuySeedStock", "seeds")
-    task.wait(1)
-    
-    local boughtGear = autoBuyFromShop("Gear_Shop", "BuyGearStock", "gear")
-    task.wait(1)
-    
-    local boughtEggs = autoBuyFromShop("PetShop_UI", "BuyPetEgg", "eggs")
-    
-    -- Return whether anything was purchased
-    return boughtSeeds or boughtGear or boughtEggs
-end
+local function autoBuyEggs()
+    local sheckles = LocalPlayer.leaderstats.Sheckles.Value
+    if sheckles < 1000000000 then -- 1 billion
+        sendNotification("GAG Script", "You can only use this if you have more than 1B sheckles!")
+        return
+    end
 
+    local eggShop = LocalPlayer.PlayerGui:FindFirstChild("PetShop_UI")
+    if not eggShop then
+        sendNotification("GAG Script", "Gear shop not open!")
+        return
+    end
+
+    local scrollingFrame = eggShop.Frame:FindFirstChildOfClass("ScrollingFrame")
+    if not scrollingFrame then return end
+
+    for _, frame in ipairs(scrollingFrame:GetChildren()) do
+        if not frame.Name:find("_Padding") and frame:FindFirstChild("Main_Frame") then
+            local mainFrame = frame.Main_Frame
+            local stockText = mainFrame:FindFirstChild("Stock_Text")
+            
+            if stockText and stockText.Text ~= "X0 Stock" then
+                local stockNum = tonumber(stockText.Text:match("X(%d+)"))
+                if stockNum and stockNum > 0 then
+                    for i = 1, stockNum do
+                        local args = {frame.Name}
+                        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("BuyPetEgg"):FireServer(unpack(args))
+                        task.wait(0.1)
+                    end
+                    sendNotification("GAG Script", "Bought "..stockNum.." "..frame.Name.." gears!")
+                end
+            end
+        end
+    end
+end
 
 tab:CreateToggle("Anti Collect Fruits", function(a)
     if a then
@@ -181,17 +216,12 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
-
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
-        while autoBuyActive do
-            if not runPurchaseCycle() then
-                -- If nothing was bought, wait longer
-                task.wait(60)
-            else
-                -- If purchases were made, shorter wait
-                task.wait(5)
-            end
+        while autoBuyActive and task.wait(1) do
+            autoBuyAll()
+            autoBuyGears()
+            autoBuyEggs()
         end
         stopBuyLoop()
     end)
@@ -200,13 +230,13 @@ end
 
 tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
     autoBuyActive = a
+    
     if a then
-        stopBuyLoop() -- Ensure any existing loop is stopped
-        startBuyLoop()
-        sendNotification("Auto-Buy", "Started shopping loop", 3)
+        if not buyLoop then
+            startBuyLoop()
+        end
     else
         stopBuyLoop()
-        sendNotification("Auto-Buy", "Stopped shopping loop", 3)
     end
 end)
 
