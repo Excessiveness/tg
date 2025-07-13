@@ -209,72 +209,6 @@ tab3:CreateButton("Sell All Fruits", function()
     simulateClick(724, 366)
 end)
 
-local countdowngui
-local frame_
-local timer_
-local progressbar_
-local progressfill_
-
-local function CreateGuiCountDown()
-
-    if countdowngui ~= nil then
-        countdowngui:Destroy()
-    end
-
-    local countdownGui = Instance.new("ScreenGui")
-    countdownGui.Name = "AutoBuyCountdown"
-    countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
-    countdowngui = countdownGui
-
-    local frame = Instance.new("Frame")
-    frame.Size = UDim2.new(0, 200, 0, 50)
-    frame.Position = UDim2.new(0.5, -100, 0.05, 0)
-    frame.AnchorPoint = Vector2.new(0.5, 0)
-    frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
-    frame.BackgroundTransparency = 0.5
-    frame.BorderSizePixel = 0
-    frame.Visible = false
-    frame.Parent = countdownGui
-    frame_ = frame
-
-    local title = Instance.new("TextLabel")
-    title.Size = UDim2.new(1, 0, 0.4, 0)
-    title.Position = UDim2.new(0, 0, 0, 0)
-    title.BackgroundTransparency = 1
-    title.Text = "Next Auto-Buy In:"
-    title.TextColor3 = Color3.fromRGB(255, 255, 255)
-    title.Font = Enum.Font.Gotham
-    title.TextSize = 14
-    title.Parent = frame
-
-    local timerText = Instance.new("TextLabel")
-    timerText.Size = UDim2.new(1, 0, 0.6, 0)
-    timerText.Position = UDim2.new(0, 0, 0.4, 0)
-    timerText.BackgroundTransparency = 1
-    timerText.Text = "60s"
-    timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
-    timerText.Font = Enum.Font.GothamBold
-    timerText.TextSize = 18
-    timerText.Parent = frame
-    timer_ = timerText
-
-    local progressBar = Instance.new("Frame")
-    progressBar.Size = UDim2.new(1, 0, 0, 3)
-    progressBar.Position = UDim2.new(0, 0, 1, -3)
-    progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
-    progressBar.BorderSizePixel = 0
-    progressBar.Parent = frame
-    progressbar_ = progressBar
-
-    local progressFill = Instance.new("Frame")
-    progressFill.Size = UDim2.new(1, 0, 1, 0)
-    progressFill.Position = UDim2.new(0, 0, 0, 0)
-    progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
-    progressFill.BorderSizePixel = 0
-    progressFill.Parent = progressBar
-    progressfill_ = progressFill
-end
-
 local autoBuyActive = false
 local buyLoop = nil
 
@@ -286,37 +220,81 @@ local function stopBuyLoop()
     autoBuyActive = false
 end
 
+local countdownGui = Instance.new("ScreenGui")
+countdownGui.Name = "AutoBuyCountdown"
+countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
+
+local frame = Instance.new("Frame")
+frame.Size = UDim2.new(0, 200, 0, 50)
+frame.Position = UDim2.new(0.5, -100, 0.05, 0)
+frame.AnchorPoint = Vector2.new(0.5, 0)
+frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
+frame.BackgroundTransparency = 0.5
+frame.BorderSizePixel = 0
+frame.Visible = false
+frame.Parent = countdownGui
+
+local title = Instance.new("TextLabel")
+title.Size = UDim2.new(1, 0, 0.4, 0)
+title.Position = UDim2.new(0, 0, 0, 0)
+title.BackgroundTransparency = 1
+title.Text = "Next Auto-Buy In:"
+title.TextColor3 = Color3.fromRGB(255, 255, 255)
+title.Font = Enum.Font.Gotham
+title.TextSize = 14
+title.Parent = frame
+
+local timerText = Instance.new("TextLabel")
+timerText.Size = UDim2.new(1, 0, 0.6, 0)
+timerText.Position = UDim2.new(0, 0, 0.4, 0)
+timerText.BackgroundTransparency = 1
+timerText.Text = "60s"
+timerText.TextColor3 = Color3.fromRGB(255, 255, 255)
+timerText.Font = Enum.Font.GothamBold
+timerText.TextSize = 18
+timerText.Parent = frame
+
+local progressBar = Instance.new("Frame")
+progressBar.Size = UDim2.new(1, 0, 0, 3)
+progressBar.Position = UDim2.new(0, 0, 1, -3)
+progressBar.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+progressBar.BorderSizePixel = 0
+progressBar.Parent = frame
+
+local progressFill = Instance.new("Frame")
+progressFill.Size = UDim2.new(1, 0, 1, 0)
+progressFill.Position = UDim2.new(0, 0, 0, 0)
+progressFill.BackgroundColor3 = Color3.fromRGB(220, 20, 60) -- Crimson
+progressFill.BorderSizePixel = 0
+progressFill.Parent = progressBar
+
 local function startBuyLoop()
     buyLoop = coroutine.create(function()
         while autoBuyActive do
-            -- Show the countdown
-            CreateGuiCountDown()
-            frame_.Visible = true
+            frame.Visible = true
             
-            -- Run the purchases
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
             
-            -- Countdown with visual update
             for i = 60, 1, -1 do
                 if not autoBuyActive then break end
                 
                 -- Update display
-                timer_.Text = i.."s"
-                progressbar_.Size = UDim2.new(i/60, 0, 1, 0)
+                timerText.Text = i.."s"
+                progressFill.Size = UDim2.new(i/60, 0, 1, 0)
                 
                 -- Smooth animation for progress bar
                 local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(progressfill_, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
+                local tween = TweenService:Create(progressFill, tweenInfo, {Size = UDim2.new((i-1)/60, 0, 1, 0)})
                 tween:Play()
                 
                 task.wait(1)
             end
             
             if not autoBuyActive then
-                if countdowngui ~= nil then
-                    countdowngui:Destroy()
+                if countdownGui then
+                    countdownGui:Destroy()
                 end
             end
         end
@@ -333,8 +311,8 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg", function(a)
             startBuyLoop()
         end
     else
-        if countdowngui ~= nil then
-            countdowngui:Destroy()
+        if countdownGui then
+            countdownGui:Destroy()
         end
         stopBuyLoop()
     end
