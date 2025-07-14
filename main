@@ -429,7 +429,7 @@ tab2:CreateToggle("Auto Dinosaur Egg", function(a)
     print(a and "Auto Dino Egg: ON" or "Auto Dino Egg: OFF")
 end)
 
-tab:CreateDD("Select Pets for Dinosaur Machine", {"Dog", "Cat", "Dinosaur"}, function(selected)
+tab:CreateDD("Select Pets for Dinosaur Machine", {"Dog", "Cat", "Dinosaur", "Bronosaurus", "Raccoon"}, function(selected)
     print("Selected pets:", table.concat(selected, ", "))
 end)
 
