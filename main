@@ -457,6 +457,8 @@ local function getPlayerPets()
             end
         end
     end
+
+    print("Found "..#pets.." pets in inventory")
     
     return pets
 end
