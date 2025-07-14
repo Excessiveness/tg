@@ -450,7 +450,7 @@ local function getPlayerPets()
                     local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
                     
                     if petType then
-                        local petString = string.format("%s [Age %s]", petType, petAge)
+                        local petString = string.format("%s [%s]", petType, petAge)
                         table.insert(pets, petString)
                     end
                 end
@@ -462,7 +462,6 @@ local function getPlayerPets()
         warn("ActivePetUI missing!")
     end
 
-    print("\nTOTAL PETS FOUND:", #pets)
     return pets
 end
 
