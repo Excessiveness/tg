@@ -428,32 +428,30 @@ end)
 local function getPlayerPets()
     local pets = {}
     
-    -- 1. Backpack pets (unchanged)
+    -- 1. Backpack pets (formatted as [Type] [Age X])
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if item.Name:match("%[Age %d+%]") then
-            table.insert(pets, item.Name)
-            print("Backpack pet:", item.Name)
+        local ageMatch = item.Name:match("%[Age (%d+)%]")
+        local petType = item.Name:gsub("%s*%[.+%]", "")
+        
+        if ageMatch and petType ~= "" then
+            local petString = string.format("%s [Age %s]", petType, ageMatch)
+            table.insert(pets, petString)
         end
     end
 
-    -- 2. UI Pets - with PetTemplate ignore
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
         local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
         
         if scrollingFrame then
-            print("\nScanning ScrollingFrame (ignoring PetTemplate)...")
             for _, child in ipairs(scrollingFrame:GetChildren()) do
-                -- Skip PetTemplate frames
                 if child:IsA("Frame") and child.Name ~= "PetTemplate" then
                     local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                    local petName = child:FindFirstChild("PET_NAME") and child.PET_NAME.Text or "Unnamed"
                     local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
                     
                     if petType then
-                        local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
+                        local petString = string.format("%s [Age %s]", petType, petAge)
                         table.insert(pets, petString)
-                        print("UI Pet Found:", petString)
                     end
                 end
             end
