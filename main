@@ -238,7 +238,7 @@ tab:CreateToggle("Anti Collect Fruits", function(a)
     end
 end)
 
-tab1:CreateButton("Sell Equipped Fruit", function()
+tab:CreateButton("Sell Equipped Fruit", function()
     local steven = workspace.NPCS:FindFirstChild("Steven")
     if not steven then
         warn("Steven NPC not found!")
@@ -264,7 +264,7 @@ tab1:CreateButton("Sell Equipped Fruit", function()
     end
 end)
 
-tab1:CreateButton("Sell All Fruits", function()
+tab:CreateButton("Sell All Fruits", function()
     local steven = workspace.NPCS:FindFirstChild("Steven")
     if not steven then
         warn("Steven NPC not found!")
