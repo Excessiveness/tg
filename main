@@ -427,6 +427,7 @@ end)
 
 local function getPlayerPets()
     local pets = {}
+    local uiPetsFound = 0
     
     -- Check backpack for pets
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
@@ -446,16 +447,27 @@ local function getPlayerPets()
     if activePetUI then
         local scrollingFrame = activePetUI.Frame:FindFirstChildOfClass("ScrollingFrame")
         if scrollingFrame then
+            print("Scanning ActivePetUI for pets...")
+            
             for _, frame in ipairs(scrollingFrame:GetChildren()) do
-                if frame:FindFirstChild("PET_TYPE") and frame.PET_TYPE:FindFirstChild("TEXT") then
-                    local petType = frame.PET_TYPE.TEXT.Text
-                    if petType and petType ~= "" then
-                        -- For pets in the UI, we might not have weight/age info
-                        table.insert(pets, petType)
+                if frame.Name:match("^%x+$") then  -- Check if frame name looks like a UUID
+                    if frame:FindFirstChild("PET_TYPE") and frame.PET_TYPE:FindFirstChild("TEXT") then
+                        local petType = frame.PET_TYPE.TEXT.Text
+                        if petType and petType ~= "" then
+                            table.insert(pets, petType)
+                            uiPetsFound = uiPetsFound + 1
+                            print("Found UI pet: "..petType.." in frame "..frame.Name)
+                        end
                     end
                 end
             end
+            
+            print("Found "..uiPetsFound.." pets in ActivePetUI")
+        else
+            print("No scrolling frame found in ActivePetUI")
         end
+    else
+        print("ActivePetUI not found")
     end
 
     print("Found "..#pets.." pets in inventory")
