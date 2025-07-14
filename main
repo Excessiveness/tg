@@ -45,17 +45,17 @@ local function managePrompts(enable)
 
     for _, prompt in ipairs(playerFarm:GetDescendants()) do
         if prompt:IsA("ProximityPrompt") then
-            local isEggPrompt = false
+            local isEggORCratePrompt = false
             local current = prompt.Parent
             while current ~= nil and current ~= playerFarm do
-                if current.Name == "PetEgg" then
-                    isEggPrompt = true
+                if current.Name == "PetEgg" or "CosmeticCrate" then
+                    isEggORCratePrompt = true
                     break
                 end
                 current = current.Parent
             end
             
-            if not isEggPrompt then
+            if not isEggORCratePrompt then
                 if enable then
                     if not savedPrompts[prompt] then
                         savedPrompts[prompt] = {
@@ -338,7 +338,7 @@ countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 50)
-frame.Position = UDim2.new(0.085, 0, 0.7, 0)
+frame.Position = UDim2.new(0.095, 0, 0.59, 0)
 frame.AnchorPoint = Vector2.new(0.5, 0.5)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.5
