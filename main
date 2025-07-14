@@ -427,14 +427,14 @@ end)
 
 local function getPlayerPets()
     local pets = {}
-    
-    -- 1. Backpack pets (formatted as [Type] [Age X])
+
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local ageMatch = item.Name:match("%[Age (%d+)%]")
+        local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
         local petType = item.Name:gsub("%s*%[.+%]", "")
         
         if ageMatch and petType ~= "" then
-            local petString = string.format("%s [Age %s]", petType, ageMatch)
+            local petString = string.format("%s [Age %s]", petType, weightMatch, ageMatch)
             table.insert(pets, petString)
         end
     end
