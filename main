@@ -427,61 +427,38 @@ end)
 
 local function getPlayerPets()
     local pets = {}
-    local uiPetsFound = 0
+    local activePetUI = game:GetService("Players").LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     
-    -- Check backpack for pets (keeps original format with weight/age)
+    -- Check backpack for pets
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local agePattern = "%[Age (%d+)%]"
         local ageMatch = item.Name:match(agePattern)
         
         if ageMatch then
             table.insert(pets, item.Name)
+            print("Found backpack pet:", item.Name)
         end
     end
 
-    -- Check ActivePetUI for pets with detailed info
-    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
+    -- Check ActivePetUI for pets
     if activePetUI then
-        local mainFrame = activePetUI.Frame:FindFirstChild("Main")
-        if mainFrame then
-            local scrollingFrame = mainFrame:FindFirstChildOfClass("ScrollingFrame")
-            if scrollingFrame then
-                print("\nScanning ActivePetUI for detailed pet info...")
-                
-                for _, petFrame in ipairs(scrollingFrame:GetChildren()) do
-                    if petFrame:IsA("Frame") and petFrame.Name:match("^{.+}$") then -- UUID format check
-                        local petInfo = {
-                            type = petFrame:FindFirstChild("PET_TYPE") and petFrame.PET_TYPE:FindFirstChild("TEXT") and petFrame.PET_TYPE.TEXT.Text or "Unknown",
-                            name = petFrame:FindFirstChild("PET_NAME") and petFrame.PET_NAME:FindFirstChild("TEXT") and petFrame.PET_NAME.TEXT.Text or "Unnamed",
-                            age = petFrame:FindFirstChild("PET_AGE") and petFrame.PET_AGE:FindFirstChild("TEXT") and petFrame.PET_AGE.TEXT.Text or "0"
-                        }
-                        
-                        if petInfo.type ~= "Unknown" then
-                            local displayText = string.format("%s [%s] [Age %s]", petInfo.name, petInfo.type, petInfo.age)
-                            table.insert(pets, displayText)
-                            uiPetsFound = uiPetsFound + 1
-                            
-                            print(string.format("Found UI pet: %s (Type: %s, Age: %s) in frame %s", 
-                                petInfo.name, petInfo.type, petInfo.age, petFrame.Name))
-                        end
-                    end
+        local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
+        for _, frame in pairs(scrollingFrame:GetChildren()) do
+            if frame.Name:match("^{.+}$") then -- Check if it's a UUID frame
+                if frame:FindFirstChild("PET_TYPE") and frame.PET_TYPE:FindFirstChild("TEXT") then
+                    local petType = frame.PET_TYPE.TEXT.Text
+                    local petName = frame:FindFirstChild("PET_NAME") and frame.PET_NAME.TEXT.Text or "Unknown"
+                    local petAge = frame:FindFirstChild("PET_AGE") and frame.PET_AGE.TEXT.Text or "0"
+                    
+                    local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
+                    table.insert(pets, petString)
+                    print("Found UI pet:", petString)
                 end
-                
-                print(string.format("\nFound %d pets in ActivePetUI", uiPetsFound))
-            else
-                warn("ScrollingFrame not found in ActivePetUI Main frame")
             end
-        else
-            warn("Main frame not found in ActivePetUI")
         end
-    else
-        warn("ActivePetUI not found in PlayerGui")
     end
 
-    print(string.format("\nTotal pets found: %d (%d from inventory, %d from UI)", 
-        #pets, #pets - uiPetsFound, uiPetsFound))
-    
-    
+    print("\nTotal pets found:", #pets)
     return pets
 end
 
