@@ -428,7 +428,7 @@ end)
 local function getPlayerPets()
     local pets = {}
     
-    -- 1. First check backpack for physical pet items
+    -- 1. Check backpack for physical pet items
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         if item.Name:match("%[Age %d+%]") then  -- Look for [Age X] pattern
             table.insert(pets, item.Name)
@@ -439,35 +439,30 @@ local function getPlayerPets()
     -- 2. Check ActivePetUI for module-based pets
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
-        -- Navigate through potential UI structure variations
         local mainFrame = activePetUI:FindFirstChild("Frame") or activePetUI
         local scrollingFrame = mainFrame:FindFirstChild("Main") and mainFrame.Main:FindFirstChildOfClass("ScrollingFrame") 
                             or mainFrame:FindFirstChildOfClass("ScrollingFrame")
 
         if scrollingFrame then
+            print("\nScanning ScrollingFrame for pets...")
             for _, child in ipairs(scrollingFrame:GetChildren()) do
-                -- Look for any frame that has PET_TYPE, PET_NAME, and PET_AGE
                 if child:IsA("Frame") then
-                    local petType = child:FindFirstChild("PET_TYPE") 
-                                  and child.PET_TYPE:FindFirstChild("TEXT") 
-                                  and child.PET_TYPE.TEXT.Text or nil
+                    -- Look for pet information in all possible configurations
+                    local petInfo = {
+                        type = findTextInDescendants(child, "PET_TYPE"),
+                        name = findTextInDescendants(child, "PET_NAME") or "Unnamed",
+                        age = findTextInDescendants(child, "PET_AGE") or "0"
+                    }
                     
-                    if petType then  -- If we found a pet module
-                        local petName = child:FindFirstChild("PET_NAME") 
-                                      and child.PET_NAME:FindFirstChild("TEXT") 
-                                      and child.PET_NAME.TEXT.Text or "Unnamed"
-                        local petAge = child:FindFirstChild("PET_AGE") 
-                                     and child.PET_AGE:FindFirstChild("TEXT") 
-                                     and child.PET_AGE.TEXT.Text or "0"
-                        
-                        local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
+                    if petInfo.type then
+                        local petString = string.format("%s [%s] [Age %s]", petInfo.name, petInfo.type, petInfo.age)
                         table.insert(pets, petString)
-                        print("Found UI pet module:", petString)
+                        print("Found UI pet:", petString)
                     end
                 end
             end
         else
-            warn("Could not find scrolling frame in ActivePetUI")
+            warn("ScrollingFrame not found in ActivePetUI")
         end
     else
         warn("ActivePetUI not found in PlayerGui")
@@ -475,6 +470,18 @@ local function getPlayerPets()
 
     print("\nTotal pets found:", #pets)
     return pets
+end
+
+-- Helper function to find text in descendants
+local function findTextInDescendants(parent, name)
+    local element = parent:FindFirstChild(name, true) -- recursive search
+    if element then
+        return element:FindFirstChildOfClass("TextLabel") and element.TextLabel.Text
+             or element:FindFirstChild("Text") and element.Text.Text
+             or element:IsA("TextLabel") and element.Text
+             or nil
+    end
+    return nil
 end
 
 local dinosaurEggDropdown = nil
