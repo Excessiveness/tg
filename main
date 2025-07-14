@@ -429,6 +429,10 @@ tab2:CreateToggle("Auto Dinosaur Egg", function(a)
     print(a and "Auto Dino Egg: ON" or "Auto Dino Egg: OFF")
 end)
 
+tab:CreateDD("Select Pets for Dinosaur Machine", {"Dog", "Cat", "Dinosaur"}, function(selected)
+    print("Selected pets:", table.concat(selected, ", "))
+end)
+
 tab3:CreateButton("Sprinker Script", function()
     loadstring(game:HttpGet("https://raw.githubusercontent.com/Phynomie/tg/refs/heads/main/script.lua"))()
 end)
