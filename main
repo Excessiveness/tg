@@ -327,7 +327,7 @@ local countdownGui = Instance.new("ScreenGui")
 countdownGui.Name = "AutoBuyCountdown"
 countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
-local shopFrame = game:GetService("Players").LocalPlayer.PlayerGui.Hud_UI.SideBtns.Shop
+local shopFrame = game:GetService("Players").LocalPlayer.PlayerGui.Hud_UI.SideBtns
 
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 50)
