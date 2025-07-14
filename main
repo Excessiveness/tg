@@ -238,12 +238,56 @@ tab:CreateToggle("Anti Collect Fruits", function(a)
     end
 end)
 
-tab3:CreateButton("Sell Equipped Fruit", function()
-    game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Sell_Item"):FireServer()
+tab1:CreateButton("Sell Equipped Fruit", function()
+    local steven = workspace.NPCS:FindFirstChild("Steven")
+    if not steven then
+        warn("Steven NPC not found!")
+        return
+    end
+    
+    local humanoidRootPart = steven:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        warn("Steven doesn't have HumanoidRootPart!")
+        return
+    end
+    local originalCFrame = humanoidRootPart.CFrame
+    local playerHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if playerHRP then
+        humanoidRootPart.CFrame = playerHRP.CFrame
+        task.wait(0.2)
+        game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Sell_Item"):FireServer() 
+        task.wait(0.2)
+        humanoidRootPart.CFrame = originalCFrame
+    else
+        warn("Player character not found!")
+        humanoidRootPart.CFrame = originalCFrame
+    end
 end)
 
-tab3:CreateButton("Sell All Fruits", function()
-    game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Sell_Inventory"):FireServer()
+tab1:CreateButton("Sell All Fruits", function()
+    local steven = workspace.NPCS:FindFirstChild("Steven")
+    if not steven then
+        warn("Steven NPC not found!")
+        return
+    end
+    
+    local humanoidRootPart = steven:FindFirstChild("HumanoidRootPart")
+    if not humanoidRootPart then
+        warn("Steven doesn't have HumanoidRootPart!")
+        return
+    end
+    local originalCFrame = humanoidRootPart.CFrame
+    local playerHRP = LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart")
+    if playerHRP then
+        humanoidRootPart.CFrame = playerHRP.CFrame
+        task.wait(0.2)
+        game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("Sell_Inventory"):FireServer() 
+        task.wait(0.2)
+        humanoidRootPart.CFrame = originalCFrame
+    else
+        warn("Player character not found!")
+        humanoidRootPart.CFrame = originalCFrame
+    end
 end)
 
 local autoBuyActive = false
