@@ -48,7 +48,7 @@ local function managePrompts(enable)
             local isEggORCratePrompt = false
             local current = prompt.Parent
             while current ~= nil and current ~= playerFarm do
-                if current.Name == "PetEgg" or "CosmeticCrate" then
+                if current.Name == "PetEgg" or current.Name == "CosmeticCrate" then
                     isEggORCratePrompt = true
                     break
                 end
