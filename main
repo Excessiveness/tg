@@ -425,17 +425,67 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg/TM/", function(a)
     end
 end)
 
+local function getPlayerPets()
+    local pets = {}
+    
+    -- Check backpack for pets
+    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        local agePattern = "%[Age (%d+)%]"
+        local ageMatch = item.Name:match(agePattern)
+        if ageMatch then
+            -- Extract pet type (e.g., "Flamingo" from "Flamingo [1.74 KG] [Age 1]")
+            local petType = item.Name:gsub("%[.+%]", ""):gsub("%s+$", "")
+            table.insert(pets, petType)
+        end
+    end
+    
+    -- Check active pet UI for pets
+    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
+    if activePetUI then
+        local scrollingFrame = activePetUI.Frame:FindFirstChildOfClass("ScrollingFrame")
+        if scrollingFrame then
+            for _, frame in ipairs(scrollingFrame:GetChildren()) do
+                if frame:FindFirstChild("PET_TYPE") and frame.PET_TYPE:FindFirstChild("TEXT") then
+                    local petType = frame.PET_TYPE.TEXT.Text
+                    if petType and petType ~= "" then
+                        table.insert(pets, petType)
+                    end
+                end
+            end
+        end
+    end
+    
+    -- Remove duplicates
+    local uniquePets = {}
+    local seen = {}
+    for _, pet in ipairs(pets) do
+        if not seen[pet] then
+            table.insert(uniquePets, pet)
+            seen[pet] = true
+        end
+    end
+    
+    return uniquePets
+end
+
 local dinosaurEggDropdown = nil
 
--- Create the toggle
 tab2:CreateToggle("Auto Dinosaur Egg", function(a)
     if a then
+        -- Get player's pets
+        local playerPets = getPlayerPets()
+        
+        if #playerPets == 0 then
+            sendNotification("GAG Script", "No pets found in your inventory!", 5)
+            return
+        end
+        
         -- Create the dropdown when toggle is enabled
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
-            {"Dog", "Cat", "Dinosaur", "Bronosaurus", "Raccoon"}, 
+            playerPets, 
             function(selected)
                 -- This callback runs whenever selections change
-                print("Selected pets for Dino Machine:", table.concat(selected, ", "))
+                sendNotification("GAG Script", "Selected pets: "..table.concat(selected, ", "), 3)
                 -- Add your dinosaur egg logic here
             end)
     else
