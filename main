@@ -425,12 +425,25 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg/TM/", function(a)
     end
 end)
 
-tab2:CreateToggle("Auto Dinosaur Egg", function(a)
-    print(a and "Auto Dino Egg: ON" or "Auto Dino Egg: OFF")
-end)
+local dinosaurEggDropdown = nil
+local dinosaurEggToggle = nil
 
-tab:CreateDD("Select Pets for Dinosaur Machine", {"Dog", "Cat", "Dinosaur", "Bronosaurus", "Raccoon"}, function(selected)
-    print("Selected pets:", table.concat(selected, ", "))
+dinosaurEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
+    if a then
+        dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
+            {"Dog", "Cat", "Dinosaur", "Bronosaurus", "Raccoon"}, 
+            function(selected)
+                print("Selected pets:", table.concat(selected, ", "))
+            end)
+    else
+        if dinosaurEggDropdown then
+            local container = dinosaurEggDropdown:GetSelections().Parent -- This gets the container frame
+            if container then
+                container:Destroy()
+            end
+            dinosaurEggDropdown = nil
+        end
+    end
 end)
 
 tab3:CreateButton("Sprinker Script", function()
