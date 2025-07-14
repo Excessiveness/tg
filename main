@@ -428,47 +428,41 @@ end)
 local function getPlayerPets()
     local pets = {}
     
-    -- 1. Check backpack for physical pet items
+    -- 1. Backpack pets (unchanged)
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if item.Name:match("%[Age %d+%]") then  -- Look for [Age X] pattern
+        if item.Name:match("%[Age %d+%]") then
             table.insert(pets, item.Name)
-            print("Found backpack pet:", item.Name)
+            print("Backpack pet:", item.Name)
         end
     end
 
-    -- 2. Check ActivePetUI for module-based pets
+    -- 2. UI Pets - DIRECT CHILD SCAN
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
-        local mainFrame = activePetUI:FindFirstChild("Frame") or activePetUI
-        local scrollingFrame = mainFrame:FindFirstChild("Main") and mainFrame.Main:FindFirstChildOfClass("ScrollingFrame") 
-                            or mainFrame:FindFirstChildOfClass("ScrollingFrame")
-
+        local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
+        
         if scrollingFrame then
-            print("\nScanning ScrollingFrame for pets...")
+            print("\nScanning ScrollingFrame...")
             for _, child in ipairs(scrollingFrame:GetChildren()) do
-                if child:IsA("Frame") then
-                    -- Look for pet information in all possible configurations
-                    local petInfo = {
-                        type = findTextInDescendants(child, "PET_TYPE"),
-                        name = findTextInDescendants(child, "PET_NAME") or "Unnamed",
-                        age = findTextInDescendants(child, "PET_AGE") or "0"
-                    }
-                    
-                    if petInfo.type then
-                        local petString = string.format("%s [%s] [Age %s]", petInfo.name, petInfo.type, petInfo.age)
-                        table.insert(pets, petString)
-                        print("Found UI pet:", petString)
-                    end
+                -- Get text values directly (no nested TEXT objects)
+                local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
+                local petName = child:FindFirstChild("PET_NAME") and child.PET_NAME.Text or "Unnamed"
+                local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
+                
+                if petType then
+                    local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
+                    table.insert(pets, petString)
+                    print("UI Pet Found:", petString)
                 end
             end
         else
-            warn("ScrollingFrame not found in ActivePetUI")
+            warn("ScrollingFrame missing!")
         end
     else
-        warn("ActivePetUI not found in PlayerGui")
+        warn("ActivePetUI missing!")
     end
 
-    print("\nTotal pets found:", #pets)
+    print("\nTOTAL PETS:", #pets)
     return pets
 end
 
