@@ -313,7 +313,7 @@ local function startBuyLoop()
             autoBuySeeds()
             autoBuyGears()
             autoBuyEggs()
-            autoBuyTM())
+            autoBuyTM()
             
             for i = 60, 1, -1 do
                 if not autoBuyActive then break end
