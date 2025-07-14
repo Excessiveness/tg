@@ -426,21 +426,22 @@ tab2:CreateToggle("Auto Buy Seed/Gear/Egg/TM/", function(a)
 end)
 
 local dinosaurEggDropdown = nil
-local dinosaurEggToggle = nil
 
-dinosaurEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
+-- Create the toggle
+tab2:CreateToggle("Auto Dinosaur Egg", function(a)
     if a then
+        -- Create the dropdown when toggle is enabled
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             {"Dog", "Cat", "Dinosaur", "Bronosaurus", "Raccoon"}, 
             function(selected)
-                print("Selected pets:", table.concat(selected, ", "))
+                -- This callback runs whenever selections change
+                print("Selected pets for Dino Machine:", table.concat(selected, ", "))
+                -- Add your dinosaur egg logic here
             end)
     else
+        -- Remove the dropdown when toggle is disabled
         if dinosaurEggDropdown then
-            local container = dinosaurEggDropdown:GetSelections().Parent -- This gets the container frame
-            if container then
-                container:Destroy()
-            end
+            dinosaurEggDropdown:Destroy()
             dinosaurEggDropdown = nil
         end
     end
