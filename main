@@ -436,23 +436,25 @@ local function getPlayerPets()
         end
     end
 
-    -- 2. UI Pets - DIRECT CHILD SCAN
+    -- 2. UI Pets - with PetTemplate ignore
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
         local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
         
         if scrollingFrame then
-            print("\nScanning ScrollingFrame...")
+            print("\nScanning ScrollingFrame (ignoring PetTemplate)...")
             for _, child in ipairs(scrollingFrame:GetChildren()) do
-                -- Get text values directly (no nested TEXT objects)
-                local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                local petName = child:FindFirstChild("PET_NAME") and child.PET_NAME.Text or "Unnamed"
-                local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
-                
-                if petType then
-                    local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
-                    table.insert(pets, petString)
-                    print("UI Pet Found:", petString)
+                -- Skip PetTemplate frames
+                if child:IsA("Frame") and child.Name ~= "PetTemplate" then
+                    local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
+                    local petName = child:FindFirstChild("PET_NAME") and child.PET_NAME.Text or "Unnamed"
+                    local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
+                    
+                    if petType then
+                        local petString = string.format("%s [%s] [Age %s]", petName, petType, petAge)
+                        table.insert(pets, petString)
+                        print("UI Pet Found:", petString)
+                    end
                 end
             end
         else
@@ -462,7 +464,7 @@ local function getPlayerPets()
         warn("ActivePetUI missing!")
     end
 
-    print("\nTOTAL PETS:", #pets)
+    print("\nTOTAL PETS FOUND:", #pets)
     return pets
 end
 
