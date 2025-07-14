@@ -431,11 +431,13 @@ local function getPlayerPets()
     -- Check backpack for pets
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local agePattern = "%[Age (%d+)%]"
+        local weightPattern = "%[(%d+%.?%d*) KG%]"
         local ageMatch = item.Name:match(agePattern)
+        local weightMatch = item.Name:match(weightPattern)
+        
         if ageMatch then
-            -- Extract pet type (e.g., "Flamingo" from "Flamingo [1.74 KG] [Age 1]")
-            local petType = item.Name:gsub("%[.+%]", ""):gsub("%s+$", "")
-            table.insert(pets, petType)
+            -- Keep the full pet name with weight and age
+            table.insert(pets, item.Name)
         end
     end
     
@@ -448,6 +450,7 @@ local function getPlayerPets()
                 if frame:FindFirstChild("PET_TYPE") and frame.PET_TYPE:FindFirstChild("TEXT") then
                     local petType = frame.PET_TYPE.TEXT.Text
                     if petType and petType ~= "" then
+                        -- For pets in the UI, we might not have weight/age info
                         table.insert(pets, petType)
                     end
                 end
@@ -455,17 +458,7 @@ local function getPlayerPets()
         end
     end
     
-    -- Remove duplicates
-    local uniquePets = {}
-    local seen = {}
-    for _, pet in ipairs(pets) do
-        if not seen[pet] then
-            table.insert(uniquePets, pet)
-            seen[pet] = true
-        end
-    end
-    
-    return uniquePets
+    return pets
 end
 
 local dinosaurEggDropdown = nil
