@@ -431,11 +431,12 @@ local function getPlayerPets()
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local ageMatch = item.Name:match("%[Age (%d+)%]")
         local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
-        local petType = item.Name:gsub("%s*%[.+%]", "")
+        local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "") -- Clean trailing spaces
         
-        if ageMatch and petType ~= "" then
-            local petString = string.format("%s [Age %s]", petType, weightMatch, ageMatch)
+        if ageMatch and weightMatch and petType ~= "" then
+            local petString = string.format("%s [%s KG] [Age %s]", petType, weightMatch, ageMatch)
             table.insert(pets, petString)
+            print("Backpack pet:", petString)
         end
     end
 
