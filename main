@@ -327,9 +327,16 @@ local countdownGui = Instance.new("ScreenGui")
 countdownGui.Name = "AutoBuyCountdown"
 countdownGui.Parent = game.Players.LocalPlayer:WaitForChild("PlayerGui")
 
+local shopFrame = game:GetService("Players").LocalPlayer.PlayerGui.Hud_UI.SideVtns.Shop
+
 local frame = Instance.new("Frame")
 frame.Size = UDim2.new(0, 200, 0, 50)
-frame.Position = UDim2.new(0.5, -535, 0.55, 0)
+frame.Position = UDim2.new(
+    0.5, 
+    0,
+    shopFrame.Position.Y.Scale, 
+    shopFrame.Position.Y.Offset + shopFrame.Size.Y.Offset + 10 
+)
 frame.AnchorPoint = Vector2.new(0.5, 0)
 frame.BackgroundColor3 = Color3.fromRGB(40, 40, 40)
 frame.BackgroundTransparency = 0.5
