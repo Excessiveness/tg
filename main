@@ -477,8 +477,6 @@ tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             playerPets, 
             function(selected)
-                -- This callback runs whenever selections change
-                sendNotification("GAG Script", "Selected pets: "..table.concat(selected, ", "), 3)
                 -- Add your dinosaur egg logic here
             end)
     else
