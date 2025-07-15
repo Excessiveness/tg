@@ -888,9 +888,14 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
                     selectedPets[selected] = true
                 end
                 
+                -- Update the display immediately
+                updateDinoDropdown()
+                
                 -- Only start the loop if the toggle is still on AND we have selections
                 if dinoEggToggle and dinoEggToggle.Value and next(selectedPets) ~= nil then
-                    startDinoLoop()
+                    if not dinoLoop then
+                        startDinoLoop()
+                    end
                 end
             end)
         
@@ -913,6 +918,12 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         
         -- Clear selected pets when toggled off
         selectedPets = {}
+        
+        -- Stop any running loop
+        if dinoLoop then
+            coroutine.close(dinoLoop)
+            dinoLoop = nil
+        end
     end
 end)
 
