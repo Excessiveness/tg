@@ -430,48 +430,45 @@ local function getPlayerPets()
 
     -- Check backpack pets
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        local ageMatch = item.Name:match("%[Age (%d+)%]")
-        local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
-        local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "") -- Clean trailing spaces
-        
-        if ageMatch and weightMatch and petType ~= "" then
-            local petString = string.format("%s [%s KG] [Age %s]", petType, weightMatch, ageMatch)
-            table.insert(pets, petString)
-            print("Backpack pet:", petString)
-        end
-    end
-
-    -- Check pets in hand (workspace.LocalPlayer)
-    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
-    if handPet then
-        for _, item in ipairs(handPet:GetChildren()) do
-            local ageMatch = item.Name:match("%[Age (%d+)%]")
-            local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
-            local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-            
-            if ageMatch and weightMatch and petType ~= "" then
-                local petString = string.format("%s [%s KG] [Age %s]", petType, weightMatch, ageMatch)
+        if item:IsA("Tool") then
+            local success, petString = pcall(function()
+                local age = item.Name:match("%[Age (%d+)%]") or "0"
+                local weight = item.Name:match("%[(%d+%.?%d*) KG%]") or "0"
+                local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                return string.format("%s [%s KG] [Age %s]", petType, weight, age)
+            end)
+            if success and petString then
                 table.insert(pets, petString)
-                print("Hand pet:", petString)
             end
         end
     end
 
-    -- Check UI pets
-    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
-    if activePetUI then
-        local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
-        if scrollingFrame then
-            for _, child in ipairs(scrollingFrame:GetChildren()) do
-                if child:IsA("Frame") and child.Name ~= "PetTemplate" then
-                    local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                    local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
-                    
-                    if petType then
-                        local petString = string.format("%s [%s]", petType, petAge)
-                        table.insert(pets, petString)
-                    end
+    -- Check pets in hand
+    local character = workspace:FindFirstChild(LocalPlayer.Name)
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") then
+                local success, petString = pcall(function()
+                    local age = item.Name:match("%[Age (%d+)%]") or "0"
+                    local weight = item.Name:match("%[(%d+%.?%d*) KG%]") or "0"
+                    local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                    return string.format("%s [%s KG] [Age %s]", petType, weight, age)
+                end)
+                if success and petString then
+                    table.insert(pets, petString)
                 end
+            end
+        end
+    end
+
+    -- Check UI pets (simplified version)
+    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
+    if activePetUI and activePetUI.Frame and activePetUI.Frame.Main and activePetUI.Frame.Main.ScrollingFrame then
+        for _, child in ipairs(activePetUI.Frame.Main.ScrollingFrame:GetChildren()) do
+            if child:IsA("Frame") and child.Name ~= "PetTemplate" then
+                local petType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text or "Unknown"
+                local petAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
+                table.insert(pets, string.format("%s [Age %s]", petType, petAge))
             end
         end
     end
@@ -552,82 +549,28 @@ local function createDinoCountdownGui()
 end
 
 local function petExists(petString)
-    -- Debug print
-    print("[DEBUG] Checking if pet exists:", petString)
-    
-    -- First verify input
     if type(petString) ~= "string" then
-        print("[ERROR] petExists: Expected string but got", type(petString))
         return false
     end
 
-    -- Safely extract pet info
-    local petType, petWeight, petAge
-    local success, err = pcall(function()
-        petType = petString:match("^(.+) %[") or "UNKNOWN"
-        petWeight = petString:match("%[(%d+%.?%d*) KG%]") or "0"
-        petAge = petString:match("%[Age (%d+)%]") or "0"
-    end)
-    
-    if not success then
-        print("[ERROR] Failed to parse pet string:", err)
-        return false
-    end
-
-    print(string.format("[DEBUG] Searching for: Type='%s' Weight='%s' Age='%s'", petType, petWeight, petAge))
-
-    -- Check backpack pets
-    print("[DEBUG] Checking backpack...")
-    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if item:IsA("Tool") then
-            local success, iType, iWeight, iAge = pcall(function()
-                return 
-                    item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", ""),
-                    item.Name:match("%[(%d+%.?%d*) KG%]") or "0",
-                    item.Name:match("%[Age (%d+)%]") or "0"
-            end)
-            
-            if success and iType == petType and iAge == petAge then
-                print(string.format("[DEBUG] Found in backpack: %s [%s KG] [Age %s]", iType, iWeight, iAge))
-                return true
-            end
+    -- Extract pet info with safety checks
+    local petType, petAge = petString:match("^(.+) %[.+%] %[Age (%d+)%]")
+    if not petType or not petAge then
+        -- Try alternative format for UI pets
+        petType, petAge = petString:match("^(.+) %[Age (%d+)%]")
+        if not petType or not petAge then
+            return false
         end
     end
 
-    -- Check hand pets
-    print("[DEBUG] Checking hand...")
-    local character = workspace:FindFirstChild(LocalPlayer.Name)
-    if character then
-        for _, item in ipairs(character:GetChildren()) do
-            if item:IsA("Tool") then
-                local success, iType, iWeight, iAge = pcall(function()
-                    return 
-                        item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", ""),
-                        item.Name:match("%[(%d+%.?%d*) KG%]") or "0",
-                        item.Name:match("%[Age (%d+)%]") or "0"
-                end)
-                
-                if success and iType == petType and iAge == petAge then
-                    print(string.format("[DEBUG] Found in hand: %s [%s KG] [Age %s]", iType, iWeight, iAge))
-                    return true
-                end
-            end
-        end
-    end
-
-    -- Check UI pets
-    print("[DEBUG] Checking UI...")
-    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
-    if activePetUI then
-        local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
-        if scrollingFrame then
-            for _, child in ipairs(scrollingFrame:GetChildren()) do
-                if child:IsA("Frame") and child.Name ~= "PetTemplate" then
-                    local uiPetType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                    local uiPetAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
-                    
-                    if uiPetType == petType and uiPetAge == petAge then
-                        print(string.format("[DEBUG] Found in UI: %s [Age %s]", uiPetType, uiPetAge))
+    -- Check backpack and character
+    local locations = {LocalPlayer.Backpack, workspace:FindFirstChild(LocalPlayer.Name)}
+    for _, location in ipairs(locations) do
+        if location then
+            for _, item in ipairs(location:GetChildren()) do
+                if item:IsA("Tool") then
+                    local iType, iAge = item.Name:match("^(.+) %[.+%] %[Age (%d+)%]")
+                    if iType and iAge and iType:gsub("%s+$", "") == petType:gsub("%s+$", "") and iAge == petAge then
                         return true
                     end
                 end
@@ -635,8 +578,27 @@ local function petExists(petString)
         end
     end
 
-    print("[DEBUG] Pet not found anywhere")
     return false
+end
+
+local function createDinoDropdown()
+    if dinosaurEggDropdown then
+        dinosaurEggDropdown:Destroy()
+    end
+    
+    -- Create new dropdown with proper library method
+    dinosaurEggDropdown = tab2:CreateDropdown({
+        Name = "Select Pets for Dinosaur Machine",
+        Options = getPlayerPets(),
+        MultiSelect = true,
+        Callback = function(selected, option)
+            if selected then
+                selectedPets[option] = true
+            else
+                selectedPets[option] = nil
+            end
+        end
+    })
 end
 
 -- Update the updateDinoDropdown function with better error handling
@@ -973,79 +935,29 @@ local function startDinoLoop()
 end
 
 dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
-    print("\n[DEBUG] Dino Egg Toggle:", a)
     if a then
-        print("[DEBUG] Initializing Dino Egg automation")
-        -- Create countdown GUI
         createDinoCountdownGui()
-        
-        -- Get player's current pets
-        local playerPets = getPlayerPets()
-        print("[DEBUG] Found", #playerPets, "pets in inventory")
-        
-        if #playerPets == 0 then
-            print("[DEBUG] No pets found - disabling toggle")
-            sendNotification("GAG Script", "No pets found in your inventory!", 5)
+        local pets = getPlayerPets()
+        if #pets == 0 then
+            sendNotification("GAG Script", "No pets found!", 5)
             dinoEggToggle:Set(false)
             return
         end
-        
-        -- Create the dropdown
-        print("[DEBUG] Creating pet selection dropdown")
-        dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
-            playerPets, 
-            function(selected)
-                print("[DEBUG] Pet selection changed:", selected)
-                if selectedPets[selected] then
-                    selectedPets[selected] = nil
-                    print("[DEBUG] Deselected pet:", selected)
-                else
-                    selectedPets[selected] = true
-                    print("[DEBUG] Selected pet:", selected)
-                end
-                
-                -- Update the display immediately
-                updateDinoDropdown()
-                
-                -- Start the loop immediately when pets are selected
-                if next(selectedPets) ~= nil then
-                    print("[DEBUG] Starting sacrifice loop with", table.count(selectedPets), "selected pets")
-                    if not dinoLoop or coroutine.status(dinoLoop) == "dead" then
-                        startDinoLoop()
-                    end
-                else
-                    print("[DEBUG] No pets selected")
-                end
-            end)
-        
-        sendNotification("GAG Script", "Please select pets to sacrifice from the dropdown", 5)
+        createDinoDropdown()
+        sendNotification("GAG Script", "Select pets to sacrifice", 5)
     else
-        print("[DEBUG] Cleaning up Dino Egg automation")
-        -- Clean up when toggled off
         if dinosaurEggDropdown then
             dinosaurEggDropdown:Destroy()
             dinosaurEggDropdown = nil
-            print("[DEBUG] Destroyed dropdown")
         end
-        
         if dinoCountdownGui then
             dinoCountdownGui:Destroy()
             dinoCountdownGui = nil
-            dinoFrame = nil
-            dinoTimerText = nil
-            dinoProgressFill = nil
-            print("[DEBUG] Destroyed countdown GUI")
         end
-        
-        -- Clear selected pets when toggled off
         selectedPets = {}
-        print("[DEBUG] Cleared selected pets")
-        
-        -- Stop any running loop
         if dinoLoop then
             coroutine.close(dinoLoop)
             dinoLoop = nil
-            print("[DEBUG] Stopped sacrifice loop")
         end
     end
 end)
