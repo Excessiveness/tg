@@ -428,6 +428,7 @@ end)
 local function getPlayerPets()
     local pets = {}
 
+    -- Check backpack pets
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
         local ageMatch = item.Name:match("%[Age (%d+)%]")
         local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
@@ -440,10 +441,26 @@ local function getPlayerPets()
         end
     end
 
+    -- Check pets in hand (workspace.LocalPlayer)
+    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
+    if handPet then
+        for _, item in ipairs(handPet:GetChildren()) do
+            local ageMatch = item.Name:match("%[Age (%d+)%]")
+            local weightMatch = item.Name:match("%[(%d+%.?%d*) KG%]")
+            local petType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+            
+            if ageMatch and weightMatch and petType ~= "" then
+                local petString = string.format("%s [%s KG] [Age %s]", petType, weightMatch, ageMatch)
+                table.insert(pets, petString)
+                print("Hand pet:", petString)
+            end
+        end
+    end
+
+    -- Check UI pets
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
         local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
-        
         if scrollingFrame then
             for _, child in ipairs(scrollingFrame:GetChildren()) do
                 if child:IsA("Frame") and child.Name ~= "PetTemplate" then
@@ -456,11 +473,7 @@ local function getPlayerPets()
                     end
                 end
             end
-        else
-            warn("ScrollingFrame missing!")
         end
-    else
-        warn("ActivePetUI missing!")
     end
 
     return pets
@@ -553,6 +566,19 @@ local function petExists(petString)
         end
     end
     
+    -- Check hand pets
+    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
+    if handPet then
+        for _, item in ipairs(handPet:GetChildren()) do
+            local ageMatch = item.Name:match("%[Age (%d+)%]")
+            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+            
+            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+                return true
+            end
+        end
+    end
+    
     -- Check UI pets
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
@@ -600,7 +626,6 @@ local function updateDinoDropdown()
     end)
 end
 
--- Function to sacrifice a pet to the dinosaur machine
 local function sacrificePet(petString)
     -- Check machine status
     local machine = workspace:FindFirstChild("DinoEvent")
@@ -615,25 +640,58 @@ local function sacrificePet(petString)
         return false
     end
     
-    local billboard = benchReward.BenchPart.BillboardPart.BillboardGui.DnaMachineLabel
-    if not billboard or billboard.Text ~= "Trade Pets for Dinos" then
-        sendNotification("GAG Script", "AutoEggDino is ON, it will automate sacrificing pets after waiting for ["..(billboard and billboard.Text or "UNKNOWN").."]", 5)
+    local billboard = workspace.DinoEvent.BenchRewardPart.BenchPart.BillboardPart.BillboardGui.DnaMachineLabel
+    if not billboard then
+        sendNotification("GAG Script", "Dino Machine UI not found!", 5)
         return false
     end
+
+    if billboard.Text ~= "Trade Pets for Dinos" then
+        sendNotification("GAG Script", "AutoEggDino is ON, waiting for machine to be ready. Current state: ["..billboard.Text.."]", 5)
+        return false
+    end
+
+    if billboard.Text == "READY" then
+        local args = {"ClaimReward"}
+        local success, err = pcall(function()
+            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
+        end)
     
-    -- Extract pet info
+        if not success then
+            sendNotification("GAG Script", "Failed to claim reward: "..tostring(err), 5)
+            return false
+        end
+        return true
+    end
+    
     local petType = petString:match("^(.+) %[")
     local petAge = petString:match("%[Age (%d+)%]") or "0"
     
-    -- Try to find pet in backpack first
+    -- First check if pet is already in hand
     local petInstance = nil
-    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        local ageMatch = item.Name:match("%[Age (%d+)%]")
-        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-        
-        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-            petInstance = item
-            break
+    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
+    if handPet then
+        for _, item in ipairs(handPet:GetChildren()) do
+            local ageMatch = item.Name:match("%[Age (%d+)%]")
+            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+            
+            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+                petInstance = item
+                break
+            end
+        end
+    end
+    
+    -- If not in hand, check backpack
+    if not petInstance then
+        for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+            local ageMatch = item.Name:match("%[Age (%d+)%]")
+            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+            
+            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+                petInstance = item
+                break
+            end
         end
     end
     
@@ -656,18 +714,36 @@ local function sacrificePet(petString)
                             }
                             ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("PetsService"):FireServer(unpack(args))
                             
-                            -- Wait for pet to appear in backpack
+                            -- Wait for pet to appear in backpack or hand
                             local waitTime = 0
                             while waitTime < 5 do -- Wait up to 5 seconds
-                                for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-                                    local ageMatch = item.Name:match("%[Age (%d+)%]")
-                                    local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-                                    
-                                    if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-                                        petInstance = item
-                                        break
+                                -- Check hand first
+                                handPet = workspace:FindFirstChild(LocalPlayer.Name)
+                                if handPet then
+                                    for _, item in ipairs(handPet:GetChildren()) do
+                                        local ageMatch = item.Name:match("%[Age (%d+)%]")
+                                        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                                        
+                                        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+                                            petInstance = item
+                                            break
+                                        end
                                     end
                                 end
+                                
+                                -- Then check backpack
+                                if not petInstance then
+                                    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+                                        local ageMatch = item.Name:match("%[Age (%d+)%]")
+                                        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                                        
+                                        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+                                            petInstance = item
+                                            break
+                                        end
+                                    end
+                                end
+                                
                                 if petInstance then break end
                                 waitTime = waitTime + 0.1
                                 task.wait(0.1)
@@ -685,17 +761,22 @@ local function sacrificePet(petString)
         return false
     end
     
-    -- Move pet to workspace (player's hand)
-    petInstance.Parent = workspace[LocalPlayer.Name]
+    -- Only move to hand if not already there
+    if petInstance.Parent ~= workspace[LocalPlayer.Name] then
+        petInstance.Parent = workspace[LocalPlayer.Name]
+        task.wait(0.5)
+    end
     
-    -- Wait a moment for the pet to be in hand
-    task.wait(0.5)
+    -- Disable favorite if needed
+    if petInstance:GetAttribute("d") == true then
+        petInstance:SetAttribute("d", false)
+        sendNotification("GAG Script", "Disabled favorite status for: "..petString, 3)
+    end
     
     -- Sacrifice to machine
     local args = {"MachineInteract"}
     ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
     
-    -- Wait a moment for the sacrifice to complete
     task.wait(0.5)
     
     return true
