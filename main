@@ -882,31 +882,24 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             playerPets, 
             function(selected)
-                local petString = selected
-                if type(selected) == "table" then
-                    -- Try to extract the string value
-                    if selected.Text then
-                        petString = selected.Text
-                    elseif selected.Value then
-                        petString = selected.Value
-                    else
-                        -- Fallback: try tostring
-                        petString = tostring(selected)
-                    end
-                end
-                print("Selected pet:", petString)
-                if selectedPets[petString] then
-                    selectedPets[petString] = nil
+                print("selectedList:", selected)
+                print("selectedList.Text:", selected and selected.Text)
+                if selectedPets[selected] then
+                    selectedPets[selected] = nil
                 else
-                    selectedPets[petString] = true
+                    selectedPets[selected] = true
                 end
+                
+                -- Update the display immediately
                 updateDinoDropdown()
+                
+                -- Only start the loop if the toggle is still on AND we have selections
                 if dinoEggToggle and dinoEggToggle.Value and next(selectedPets) ~= nil then
                     if not dinoLoop then
                         startDinoLoop()
                     end
                 end
-            end
+            end)
         
         -- Don't automatically start the loop here - wait for user selections
         sendNotification("GAG Script", "Please select pets to sacrifice from the dropdown", 5)
