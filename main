@@ -663,36 +663,6 @@ local function sacrificePet(petString)
         end
         return true
     end
-
-    local secondsRemaining = billboard.Text:match("(%d+) seconds remaining")
-
-    if secondsRemaining then
-            secondsRemaining = tonumber(secondsRemaining)
-            sendNotification("GAG Script", "Waiting for Dino Machine cooldown ("..secondsRemaining.."s remaining)", 5)
-            
-            -- Show countdown
-            dinoFrame.Visible = true
-            
-            -- Wait for the remaining time
-            for i = secondsRemaining, 1, -1 do
-                if not dinoEggToggle or not dinoEggToggle.Value then break end
-                
-                dinoTimerText.Text = i.."s"
-                dinoProgressFill.Size = UDim2.new(i/secondsRemaining, 0, 1, 0)
-                
-                local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                local tween = TweenService:Create(dinoProgressFill, tweenInfo, {Size = UDim2.new((i-1)/secondsRemaining, 0, 1, 0)})
-                tween:Play()
-                
-                task.wait(1)
-            end
-            
-            return false
-        else
-            sendNotification("GAG Script", "Dino Machine in unknown state: ["..billboard.Text.."]", 5)
-            return false
-        end
-    end
     
     local petType = petString:match("^(.+) %[")
     local petAge = petString:match("%[Age (%d+)%]") or "0"
