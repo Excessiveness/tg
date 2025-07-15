@@ -874,6 +874,7 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         
         if #playerPets == 0 then
             sendNotification("GAG Script", "No pets found in your inventory!", 5)
+            dinoEggToggle:Set(false) -- Turn off the toggle if no pets
             return
         end
         
@@ -887,16 +888,14 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
                     selectedPets[selected] = true
                 end
                 
-                -- If we're starting the auto process and have selections, start the loop
-                if a and next(selectedPets) ~= nil then
+                -- Only start the loop if the toggle is still on AND we have selections
+                if dinoEggToggle and dinoEggToggle.Value and next(selectedPets) ~= nil then
                     startDinoLoop()
                 end
             end)
         
-        -- If we already have selected pets from before, start the loop
-        if next(selectedPets) ~= nil then
-            startDinoLoop()
-        end
+        -- Don't automatically start the loop here - wait for user selections
+        sendNotification("GAG Script", "Please select pets to sacrifice from the dropdown", 5)
     else
         -- Clean up when toggled off
         if dinosaurEggDropdown then
@@ -911,6 +910,9 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
             dinoTimerText = nil
             dinoProgressFill = nil
         end
+        
+        -- Clear selected pets when toggled off
+        selectedPets = {}
     end
 end)
 
