@@ -552,34 +552,71 @@ local function createDinoCountdownGui()
 end
 
 local function petExists(petString)
-    -- Extract pet type and age from the string
-    local petType = petString:match("^(.+) %[")
-    local petAge = petString:match("%[Age (%d+)%]") or "0"
+    -- Debug print
+    print("[DEBUG] Checking if pet exists:", petString)
     
-    -- Check backpack pets
-    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        local ageMatch = item.Name:match("%[Age (%d+)%]")
-        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-        
-        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-            return true
-        end
+    -- First verify input
+    if type(petString) ~= "string" then
+        print("[ERROR] petExists: Expected string but got", type(petString))
+        return false
     end
+
+    -- Safely extract pet info
+    local petType, petWeight, petAge
+    local success, err = pcall(function()
+        petType = petString:match("^(.+) %[") or "UNKNOWN"
+        petWeight = petString:match("%[(%d+%.?%d*) KG%]") or "0"
+        petAge = petString:match("%[Age (%d+)%]") or "0"
+    end)
     
-    -- Check hand pets
-    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
-    if handPet then
-        for _, item in ipairs(handPet:GetChildren()) do
-            local ageMatch = item.Name:match("%[Age (%d+)%]")
-            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+    if not success then
+        print("[ERROR] Failed to parse pet string:", err)
+        return false
+    end
+
+    print(string.format("[DEBUG] Searching for: Type='%s' Weight='%s' Age='%s'", petType, petWeight, petAge))
+
+    -- Check backpack pets
+    print("[DEBUG] Checking backpack...")
+    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
+        if item:IsA("Tool") then
+            local success, iType, iWeight, iAge = pcall(function()
+                return 
+                    item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", ""),
+                    item.Name:match("%[(%d+%.?%d*) KG%]") or "0",
+                    item.Name:match("%[Age (%d+)%]") or "0"
+            end)
             
-            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+            if success and iType == petType and iAge == petAge then
+                print(string.format("[DEBUG] Found in backpack: %s [%s KG] [Age %s]", iType, iWeight, iAge))
                 return true
             end
         end
     end
-    
+
+    -- Check hand pets
+    print("[DEBUG] Checking hand...")
+    local character = workspace:FindFirstChild(LocalPlayer.Name)
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") then
+                local success, iType, iWeight, iAge = pcall(function()
+                    return 
+                        item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", ""),
+                        item.Name:match("%[(%d+%.?%d*) KG%]") or "0",
+                        item.Name:match("%[Age (%d+)%]") or "0"
+                end)
+                
+                if success and iType == petType and iAge == petAge then
+                    print(string.format("[DEBUG] Found in hand: %s [%s KG] [Age %s]", iType, iWeight, iAge))
+                    return true
+                end
+            end
+        end
+    end
+
     -- Check UI pets
+    print("[DEBUG] Checking UI...")
     local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
     if activePetUI then
         local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
@@ -590,27 +627,39 @@ local function petExists(petString)
                     local uiPetAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
                     
                     if uiPetType == petType and uiPetAge == petAge then
+                        print(string.format("[DEBUG] Found in UI: %s [Age %s]", uiPetType, uiPetAge))
                         return true
                     end
                 end
             end
         end
     end
-    
+
+    print("[DEBUG] Pet not found anywhere")
     return false
 end
 
--- Function to update the dropdown options
+-- Update the updateDinoDropdown function with better error handling
 local function updateDinoDropdown()
-    if not dinosaurEggDropdown then return end
+    print("[DEBUG] Updating dinosaur dropdown")
+    if not dinosaurEggDropdown then 
+        print("[WARNING] Dropdown reference is nil")
+        return 
+    end
     
-    local currentPets = getPlayerPets()
-    local newOptions = {}
-    local toRemove = {}
+    local success, currentPets = pcall(getPlayerPets)
+    if not success then
+        print("[ERROR] Failed to get player pets:", currentPets)
+        return
+    end
+
+    print("[DEBUG] Current pets count:", #currentPets)
     
     -- Check which selected pets still exist
+    local toRemove = {}
     for petString, _ in pairs(selectedPets) do
         if not petExists(petString) then
+            print("[DEBUG] Pet no longer exists:", petString)
             table.insert(toRemove, petString)
         end
     end
@@ -620,10 +669,16 @@ local function updateDinoDropdown()
         selectedPets[petString] = nil
     end
     
-    -- Update dropdown with current pets
-    dinosaurEggDropdown:Refresh(currentPets, function(option)
-        return selectedPets[option] ~= nil
+    print("[DEBUG] Refreshing dropdown with", #currentPets, "pets")
+    local success, err = pcall(function()
+        dinosaurEggDropdown:Refresh(currentPets, function(option)
+            return selectedPets[option] ~= nil
+        end)
     end)
+    
+    if not success then
+        print("[ERROR] Failed to refresh dropdown:", err)
+    end
 end
 
 local function equipPet(petInstance)
