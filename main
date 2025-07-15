@@ -640,7 +640,7 @@ local function sacrificePet(petString)
         return false
     end
     
-    local billboard = workspace.DinoEvent.BenchRewardPart.BenchPart.BillboardPart.BillboardGui.DnaMachineLabel
+    local billboard = benchReward:FindFirstChild("BenchPart", true):FindFirstChild("BillboardPart", true):FindFirstChild("BillboardGui", true):FindFirstChild("DnaMachineLabel", true)
     if not billboard then
         sendNotification("GAG Script", "Dino Machine UI not found!", 5)
         return false
@@ -891,15 +891,12 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
                 -- Update the display immediately
                 updateDinoDropdown()
                 
-                -- Only start the loop if the toggle is still on AND we have selections
-                if dinoEggToggle and dinoEggToggle.Value and next(selectedPets) ~= nil then
-                    if not dinoLoop then
-                        startDinoLoop()
-                    end
+                -- Start the loop immediately when pets are selected
+                if next(selectedPets) ~= nil and (not dinoLoop or coroutine.status(dinoLoop) == "dead") then
+                    startDinoLoop()
                 end
             end)
         
-        -- Don't automatically start the loop here - wait for user selections
         sendNotification("GAG Script", "Please select pets to sacrifice from the dropdown", 5)
     else
         -- Clean up when toggled off
