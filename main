@@ -883,8 +883,10 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
             playerPets, 
             function(selected)
                 if selectedPets[selected] then
+                    print(selectedPets[selected].Text)
                     selectedPets[selected] = nil
                 else
+                    print("1", selectedPets[selected].Text)
                     selectedPets[selected] = true
                 end
                 
