@@ -882,6 +882,17 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             playerPets, 
             function(selected)
+                print("Dropdown selected:", selected, typeof(selected))
+                if type(selected) == "table" then
+                    if selected.Text then
+                        selected = selected.Text
+                    elseif selected.Value then
+                        selected = selected.Value
+                    else
+                        warn("Unknown dropdown selection format", selected)
+                        return
+                    end
+                end
                 if selectedPets[selected] then
                     selectedPets[selected] = nil
                 else
