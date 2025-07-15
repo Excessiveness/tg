@@ -558,36 +558,61 @@ local function createDinoCountdownGui()
 end
 
 local function petExists(petString)
+    -- First ensure we have a string input
+    if type(petString) ~= "string" then
+        print("[ERROR] petExists expected string but got:", type(petString))
+        return false
+    end
+
     print("[DEBUG] Verifying pet exists:", petString)
-    -- Extract pet type and age from the string
-    local petType = petString:match("^(.+) %[")
-    local petAge = petString:match("%[Age (%d+)%]") or "0"
     
-    print(string.format("[PET SEARCH] Looking for: Type='%s' Age='%s'", petType or "nil", petAge))
+    -- Safely extract pet info with error handling
+    local petType, petAge
+    local success, err = pcall(function()
+        petType = petString:match("^(.+) %[")
+        petAge = petString:match("%[Age (%d+)%]") or "0"
+    end)
+    
+    if not success or not petType then
+        print("[ERROR] Failed to parse pet string:", err)
+        return false
+    end
+
+    print(string.format("[PET SEARCH] Looking for: Type='%s' Age='%s'", petType, petAge))
 
     -- Check backpack pets
     print("[DEBUG] Checking backpack...")
     for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        local ageMatch = item.Name:match("%[Age (%d+)%]")
-        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-        
-        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-            print("[PET FOUND] In backpack:", item.Name)
-            return true
+        if item:IsA("Tool") then
+            local iType, iAge
+            local iSuccess = pcall(function()
+                iType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                iAge = item.Name:match("%[Age (%d+)%]") or "0"
+            end)
+            
+            if iSuccess and iType == petType and iAge == petAge then
+                print("[PET FOUND] In backpack:", item.Name)
+                return true
+            end
         end
     end
     
     -- Check hand pets
     print("[DEBUG] Checking equipped pets...")
-    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
-    if handPet then
-        for _, item in ipairs(handPet:GetChildren()) do
-            local ageMatch = item.Name:match("%[Age (%d+)%]")
-            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-            
-            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-                print("[PET FOUND] In hand:", item.Name)
-                return true
+    local character = workspace:FindFirstChild(LocalPlayer.Name)
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") then
+                local iType, iAge
+                local iSuccess = pcall(function()
+                    iType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
+                    iAge = item.Name:match("%[Age (%d+)%]") or "0"
+                end)
+                
+                if iSuccess and iType == petType and iAge == petAge then
+                    print("[PET FOUND] In hand:", item.Name)
+                    return true
+                end
             end
         end
     end
