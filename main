@@ -882,8 +882,25 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             playerPets, 
             function(selected)
-                print("selectedList:", selected)
-                print("selectedList.Text:", selected and selected.Text)
+                if type(selected) == "table" then
+                    print("Table contents:")
+                    for k, v in pairs(selected) do
+                        print(k, v)
+                    end
+                end
+
+                local selectedText = nil
+                if type(selected) == "table" and selected.Text then
+                    selectedText = selected.Text
+                elseif type(selected) == "string" then
+                    selectedText = selected
+                elseif selected and tostring(selected) then
+                    selectedText = tostring(selected)
+                end
+        
+                print("Selected text:", selectedText)
+                print("Type of selected:", type(selected))
+
                 if selectedPets[selected] then
                     selectedPets[selected] = nil
                 else
