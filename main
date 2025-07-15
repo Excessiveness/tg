@@ -881,10 +881,11 @@ dinoEggToggle = tab2:CreateToggle("Auto Dinosaur Egg", function(a)
         -- Create the dropdown
         dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
             playerPets, 
-            function(selectedList)
-                -- selectedList is a table (array) of selected pet strings
+            function(selected)
+                print("selected:", selected)
+                print("selected.Text:", selected and selected.Text)
                 selectedPets = {}
-                for _, petString in ipairs(selectedList) do
+                for _, petString in ipairs(selected) do
                     selectedPets[petString] = true
                 end
                 updateDinoDropdown()
