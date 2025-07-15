@@ -785,7 +785,9 @@ end
 -- Main Dino Egg loop
 local dinoLoop = nil
 local function startDinoLoop()
-    if dinoLoop then coroutine.close(dinoLoop) end
+    if dinoLoop and coroutine.status(dinoLoop) == "running" then
+        coroutine.close(dinoLoop)
+    end
     
     dinoLoop = coroutine.create(function()
         while dinoEggToggle and dinoEggToggle.Value do
@@ -800,43 +802,43 @@ local function startDinoLoop()
                 continue
             end
             
-            -- Get the first selected pet
-            local petToSacrifice = nil
+            -- Try all selected pets until one works
+            local sacrificed = false
             for petString, _ in pairs(selectedPets) do
-                petToSacrifice = petString
-                break
-            end
-            
-            if not petToSacrifice then
-                task.wait(1)
-                continue
-            end
-            
-            -- Show countdown
-            dinoFrame.Visible = true
-            
-            -- Try to sacrifice the pet
-            local success = sacrificePet(petToSacrifice)
-            
-            if success then
-                -- Remove the sacrificed pet from selection
-                selectedPets[petToSacrifice] = nil
+                if not (dinoEggToggle and dinoEggToggle.Value) then break end
                 
-                -- Countdown for next sacrifice
-                for i = 30, 1, -1 do -- 30 second cooldown
-                    if not dinoEggToggle or not dinoEggToggle.Value then break end
+                -- Show countdown
+                dinoFrame.Visible = true
+                dinoTimerText.Text = "Trying to sacrifice..."
+                dinoProgressFill.Size = UDim2.new(1, 0, 1, 0)
+                
+                -- Try to sacrifice the pet
+                local success = sacrificePet(petString)
+                
+                if success then
+                    -- Remove the sacrificed pet from selection
+                    selectedPets[petString] = nil
+                    sacrificed = true
                     
-                    dinoTimerText.Text = i.."s"
-                    dinoProgressFill.Size = UDim2.new(i/30, 0, 1, 0)
-                    
-                    local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
-                    local tween = TweenService:Create(dinoProgressFill, tweenInfo, {Size = UDim2.new((i-1)/30, 0, 1, 0)})
-                    tween:Play()
-                    
-                    task.wait(1)
+                    -- Countdown for next sacrifice
+                    for i = 30, 1, -1 do -- 30 second cooldown
+                        if not dinoEggToggle or not dinoEggToggle.Value then break end
+                        
+                        dinoTimerText.Text = i.."s"
+                        dinoProgressFill.Size = UDim2.new(i/30, 0, 1, 0)
+                        
+                        local tweenInfo = TweenInfo.new(1, Enum.EasingStyle.Linear)
+                        local tween = TweenService:Create(dinoProgressFill, tweenInfo, {Size = UDim2.new((i-1)/30, 0, 1, 0)})
+                        tween:Play()
+                        
+                        task.wait(1)
+                    end
+                    break
                 end
-            else
-                -- If failed, wait 5 seconds before retry
+            end
+            
+            if not sacrificed then
+                -- If failed to sacrifice any pet, wait 5 seconds before retry
                 for i = 5, 1, -1 do
                     if not dinoEggToggle or not dinoEggToggle.Value then break end
                     
