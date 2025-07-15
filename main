@@ -558,120 +558,148 @@ local function createDinoCountdownGui()
 end
 
 local function petExists(petString)
-    -- First ensure we have a string input
     if type(petString) ~= "string" then
-        print("[ERROR] petExists expected string but got:", type(petString))
+        print("[ERROR] petExists: Expected string but got", type(petString))
         return false
     end
 
-    print("[DEBUG] Verifying pet exists:", petString)
+    print("[DEBUG] Checking pet:", petString)
     
-    -- Safely extract pet info with error handling
-    local petType, petAge
-    local success, err = pcall(function()
-        petType = petString:match("^(.+) %[")
-        petAge = petString:match("%[Age (%d+)%]") or "0"
-    end)
-    
-    if not success or not petType then
-        print("[ERROR] Failed to parse pet string:", err)
-        return false
-    end
-
-    print(string.format("[PET SEARCH] Looking for: Type='%s' Age='%s'", petType, petAge))
-
-    -- Check backpack pets
-    print("[DEBUG] Checking backpack...")
-    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-        if item:IsA("Tool") then
-            local iType, iAge
-            local iSuccess = pcall(function()
-                iType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-                iAge = item.Name:match("%[Age (%d+)%]") or "0"
-            end)
-            
-            if iSuccess and iType == petType and iAge == petAge then
-                print("[PET FOUND] In backpack:", item.Name)
-                return true
-            end
+    -- Extract pet info with safety checks
+    local petType, petAge = petString:match("^(.+) %[.+%] %[Age (%d+)%]")
+    if not petType or not petAge then
+        -- Try alternative format for UI pets
+        petType, petAge = petString:match("^(.+) %[Age (%d+)%]")
+        if not petType or not petAge then
+            print("[ERROR] Could not parse pet string:", petString)
+            return false
         end
     end
-    
-    -- Check hand pets
-    print("[DEBUG] Checking equipped pets...")
-    local character = workspace:FindFirstChild(LocalPlayer.Name)
-    if character then
-        for _, item in ipairs(character:GetChildren()) do
-            if item:IsA("Tool") then
-                local iType, iAge
-                local iSuccess = pcall(function()
-                    iType = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-                    iAge = item.Name:match("%[Age (%d+)%]") or "0"
-                end)
-                
-                if iSuccess and iType == petType and iAge == petAge then
-                    print("[PET FOUND] In hand:", item.Name)
-                    return true
-                end
-            end
-        end
-    end
-    
-    -- Check UI pets
-    print("[DEBUG] Checking UI pets...")
-    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
-    if activePetUI then
-        local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
-        if scrollingFrame then
-            for _, child in ipairs(scrollingFrame:GetChildren()) do
-                if child:IsA("Frame") and child.Name ~= "PetTemplate" then
-                    local uiPetType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                    local uiPetAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
-                    
-                    if uiPetType == petType and uiPetAge == petAge then
-                        print("[PET FOUND] In UI:", uiPetType, "Age", uiPetAge)
+
+    -- Search locations
+    local locations = {
+        Backpack = LocalPlayer.Backpack,
+        Hand = workspace:FindFirstChild(LocalPlayer.Name)
+    }
+
+    for locationName, location in pairs(locations) do
+        if location then
+            for _, item in ipairs(location:GetChildren()) do
+                if item:IsA("Tool") then
+                    local iType, iAge = item.Name:match("^(.+) %[.+%] %[Age (%d+)%]")
+                    if iType and iAge and iType:gsub("%s+$", "") == petType:gsub("%s+$", "") and iAge == petAge then
+                        print("[FOUND] Pet in", locationName, ":", item.Name)
                         return true
                     end
                 end
             end
         end
     end
-    
-    print("[DEBUG] Pet not found anywhere")
+
+    -- Check UI pets
+    local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
+    if activePetUI and activePetUI.Frame and activePetUI.Frame.Main and activePetUI.Frame.Main.ScrollingFrame then
+        for _, child in ipairs(activePetUI.Frame.Main.ScrollingFrame:GetChildren()) do
+            if child:IsA("Frame") and child.Name ~= "PetTemplate" then
+                local uiPetType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
+                local uiPetAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
+                
+                if uiPetType == petType and uiPetAge == petAge then
+                    print("[FOUND] Pet in UI")
+                    return true
+                end
+            end
+        end
+    end
+
+    print("[DEBUG] Pet not found")
     return false
 end
 
--- Function to update the dropdown options
+local selectedPetStrings = {} -- This will store the actual string representations
+
 local function updateDinoDropdown()
-    print("\n[DEBUG] Updating dinosaur dropdown...")
+    print("[DEBUG] Updating dinosaur dropdown")
     if not dinosaurEggDropdown then 
-        print("[WARNING] Dropdown reference missing!")
+        print("[WARNING] Dropdown reference is nil")
         return 
     end
     
-    local currentPets = getPlayerPets()
-    print(string.format("[DEBUG] Found %d pets for dropdown", #currentPets))
+    -- Get current pets and ensure they're strings
+    local currentPets = {}
+    for _, pet in ipairs(getPlayerPets()) do
+        if type(pet) == "string" then
+            table.insert(currentPets, pet)
+        else
+            print("[WARNING] Found non-string pet:", pet)
+        end
+    end
     
-    -- Check which selected pets still exist
+    print("[DEBUG] Current pets count:", #currentPets)
+    
+    -- Clean up selected pets that no longer exist
     local toRemove = {}
     for petString, _ in pairs(selectedPets) do
-        print("[DEBUG] Checking pet:", petString)
-        if not petExists(petString) then
-            print("[DEBUG] Pet no longer exists:", petString)
+        if type(petString) ~= "string" or not petExists(petString) then
+            print("[DEBUG] Removing invalid pet selection:", petString)
             table.insert(toRemove, petString)
         end
     end
     
-    -- Remove non-existent pets
     for _, petString in ipairs(toRemove) do
         selectedPets[petString] = nil
     end
     
-    print("[DEBUG] Refreshing dropdown options...")
-    dinosaurEggDropdown:Refresh(currentPets, function(option)
-        return selectedPets[option] ~= nil
-    end)
-    print("[DEBUG] Dropdown update complete")
+    -- Update dropdown using the library's proper refresh method
+    if dinosaurEggDropdown.Refresh then
+        dinosaurEggDropdown:Refresh(currentPets, function(option)
+            return selectedPets[option] ~= nil
+        end)
+        print("[DEBUG] Dropdown refreshed successfully")
+    else
+        print("[ERROR] Dropdown doesn't have Refresh method")
+        -- Fallback: recreate the dropdown
+        dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
+            currentPets,
+            function(selected)
+                if type(selected) == "string" then
+                    if selectedPets[selected] then
+                        selectedPets[selected] = nil
+                    else
+                        selectedPets[selected] = true
+                    end
+                    updateDinoDropdown()
+                end
+            end)
+    end
+end
+
+local function createDinoDropdown()
+    if dinosaurEggDropdown then
+        dinosaurEggDropdown:Destroy()
+    end
+    
+    local pets = {}
+    for _, pet in ipairs(getPlayerPets()) do
+        if type(pet) == "string" then
+            table.insert(pets, pet)
+        end
+    end
+
+    dinosaurEggDropdown = tab2:CreateDD("Select Pets for Dinosaur Machine", 
+        pets,
+        function(selected)
+            if type(selected) == "string" then
+                if selectedPets[selected] then
+                    selectedPets[selected] = nil
+                    print("Deselected:", selected)
+                else
+                    selectedPets[selected] = true
+                    print("Selected:", selected)
+                end
+                updateDinoDropdown()
+            end
+        end)
 end
 
 local function sacrificePet(petString)
