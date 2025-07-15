@@ -626,160 +626,140 @@ local function updateDinoDropdown()
     end)
 end
 
+local function equipPet(petInstance)
+    -- First try the simple way (parenting to character)
+    if petInstance and petInstance:IsA("Tool") then
+        -- Check if already in hand
+        if petInstance.Parent == workspace[LocalPlayer.Name] then
+            return true
+        end
+        
+        -- Unequip current pet if any
+        local currentPet = workspace[LocalPlayer.Name]:FindFirstChildOfClass("Tool")
+        if currentPet then
+            currentPet.Parent = LocalPlayer.Backpack
+            task.wait(0.3)
+        end
+        
+        -- Equip new pet
+        petInstance.Parent = workspace[LocalPlayer.Name]
+        task.wait(0.5)
+        return true
+    end
+    
+    -- If simple method fails, try using game's equip system
+    local petsService = ReplicatedStorage:FindFirstChild("GameEvents"):FindFirstChild("PetsService")
+    if petsService then
+        local petUUID = petInstance:GetAttribute("UUID") or petInstance.Name
+        petsService:FireServer("EquipPet", petUUID)
+        task.wait(0.5)
+        return true
+    end
+    
+    return false
+end
+
 local function sacrificePet(petString)
-    -- Check machine status
+    -- Check machine status first
     local machine = workspace:FindFirstChild("DinoEvent")
     if not machine then
         sendNotification("GAG Script", "Dino Machine not found!", 5)
         return false
     end
     
-    local benchReward = machine:FindFirstChild("BenchRewardPart")
-    if not benchReward then
-        sendNotification("GAG Script", "Dino Machine parts not found!", 5)
-        return false
-    end
+    -- Get machine UI status
+    local billboard = machine:FindFirstChild("BenchRewardPart", true)
+                      and machine.BenchRewardPart:FindFirstChild("BenchPart", true)
+                      and machine.BenchRewardPart.BenchPart:FindFirstChild("BillboardPart", true)
+                      and machine.BenchRewardPart.BenchPart.BillboardPart:FindFirstChild("BillboardGui", true)
+                      and machine.BenchRewardPart.BenchPart.BillboardPart.BillboardGui:FindFirstChild("DnaMachineLabel", true)
     
-    local billboard = benchReward:FindFirstChild("BenchPart", true):FindFirstChild("BillboardPart", true):FindFirstChild("BillboardGui", true):FindFirstChild("DnaMachineLabel", true)
     if not billboard then
         sendNotification("GAG Script", "Dino Machine UI not found!", 5)
         return false
     end
 
-    if billboard.Text ~= "Trade Pets for Dinos" then
-        sendNotification("GAG Script", "AutoEggDino is ON, waiting for machine to be ready. Current state: ["..billboard.Text.."]", 5)
+    -- Handle ready state
+    if billboard.Text == "READY" then
+        local args = {"ClaimReward"}
+        local success = pcall(function()
+            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
+        end)
+        return success
+    elseif billboard.Text ~= "Trade Pets for Dinos" then
+        sendNotification("GAG Script", "Machine not ready. State: "..billboard.Text, 3)
         return false
     end
 
-    if billboard.Text == "READY" then
-        local args = {"ClaimReward"}
-        local success, err = pcall(function()
-            game:GetService("ReplicatedStorage"):WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
-        end)
-    
-        if not success then
-            sendNotification("GAG Script", "Failed to claim reward: "..tostring(err), 5)
-            return false
-        end
-        return true
-    end
-    
+    -- Find and equip the pet
     local petType = petString:match("^(.+) %[")
     local petAge = petString:match("%[Age (%d+)%]") or "0"
     
-    -- First check if pet is already in hand
-    local petInstance = nil
-    local handPet = workspace:FindFirstChild(LocalPlayer.Name)
-    if handPet then
-        for _, item in ipairs(handPet:GetChildren()) do
-            local ageMatch = item.Name:match("%[Age (%d+)%]")
-            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-            
-            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+    -- Search in hand first
+    local petInstance
+    local character = workspace[LocalPlayer.Name]
+    if character then
+        for _, item in ipairs(character:GetChildren()) do
+            if item:IsA("Tool") and item.Name:match(petType) and item.Name:match("Age "..petAge) then
                 petInstance = item
                 break
             end
         end
     end
     
-    -- If not in hand, check backpack
+    -- Search in backpack if not found
     if not petInstance then
         for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-            local ageMatch = item.Name:match("%[Age (%d+)%]")
-            local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-            
-            if ageMatch and petTypeMatch == petType and ageMatch == petAge then
+            if item:IsA("Tool") and item.Name:match(petType) and item.Name:match("Age "..petAge) then
                 petInstance = item
                 break
             end
         end
     end
-    
-    -- If not in backpack, try to unequip from UI
+
     if not petInstance then
-        local activePetUI = LocalPlayer.PlayerGui:FindFirstChild("ActivePetUI")
-        if activePetUI then
-            local scrollingFrame = activePetUI.Frame.Main.ScrollingFrame
-            if scrollingFrame then
-                for _, child in ipairs(scrollingFrame:GetChildren()) do
-                    if child:IsA("Frame") and child.Name ~= "PetTemplate" then
-                        local uiPetType = child:FindFirstChild("PET_TYPE") and child.PET_TYPE.Text
-                        local uiPetAge = child:FindFirstChild("PET_AGE") and child.PET_AGE.Text or "0"
-                        
-                        if uiPetType == petType and uiPetAge == petAge then
-                            -- Unequip the pet
-                            local args = {
-                                "UnequipPet",
-                                child.Name -- This should be the UUID
-                            }
-                            ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("PetsService"):FireServer(unpack(args))
-                            
-                            -- Wait for pet to appear in backpack or hand
-                            local waitTime = 0
-                            while waitTime < 5 do -- Wait up to 5 seconds
-                                -- Check hand first
-                                handPet = workspace:FindFirstChild(LocalPlayer.Name)
-                                if handPet then
-                                    for _, item in ipairs(handPet:GetChildren()) do
-                                        local ageMatch = item.Name:match("%[Age (%d+)%]")
-                                        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-                                        
-                                        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-                                            petInstance = item
-                                            break
-                                        end
-                                    end
-                                end
-                                
-                                -- Then check backpack
-                                if not petInstance then
-                                    for _, item in ipairs(LocalPlayer.Backpack:GetChildren()) do
-                                        local ageMatch = item.Name:match("%[Age (%d+)%]")
-                                        local petTypeMatch = item.Name:gsub("%s*%[.+%]", ""):gsub("%s+$", "")
-                                        
-                                        if ageMatch and petTypeMatch == petType and ageMatch == petAge then
-                                            petInstance = item
-                                            break
-                                        end
-                                    end
-                                end
-                                
-                                if petInstance then break end
-                                waitTime = waitTime + 0.1
-                                task.wait(0.1)
-                            end
-                            break
-                        end
-                    end
-                end
-            end
-        end
-    end
-    
-    if not petInstance then
-        sendNotification("GAG Script", "Could not find pet: "..petString, 5)
+        sendNotification("GAG Script", "Pet not found: "..petString, 5)
         return false
     end
-    
-    -- Only move to hand if not already there
-    if petInstance.Parent ~= workspace[LocalPlayer.Name] then
-        petInstance.Parent = workspace[LocalPlayer.Name]
-        task.wait(0.5)
+
+    -- Ensure pet is in hand
+    if not equipPet(petInstance) then
+        sendNotification("GAG Script", "Failed to equip pet!", 3)
+        return false
     end
-    
+
     -- Disable favorite if needed
     if petInstance:GetAttribute("d") == true then
         petInstance:SetAttribute("d", false)
-        sendNotification("GAG Script", "Disabled favorite status for: "..petString, 3)
+        task.wait(0.3)
     end
-    
+
     -- Sacrifice to machine
     local args = {"MachineInteract"}
-    ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
+    local success = pcall(function()
+        ReplicatedStorage:WaitForChild("GameEvents"):WaitForChild("DinoMachineService_RE"):FireServer(unpack(args))
+    end)
     
-    task.wait(0.5)
+    task.wait(1) -- Important cooldown
     
-    return true
+    return success
+end
+
+local function getPetUniqueId(petInstance)
+    return petInstance:GetAttribute("UUID") or petInstance.Name
+end
+
+local function getDinoMachine()
+    local machine = workspace:FindFirstChild("DinoEvent")
+    if not machine then return nil end
+    
+    local billboard = machine:FindFirstChild("BenchRewardPart", true)
+                      and machine.BenchRewardPart:FindFirstChild("BenchPart", true)
+                      and machine.BenchRewardPart.BenchPart:FindFirstChild("BillboardPart", true)
+                      and machine.BenchRewardPart.BenchPart.BillboardPart:FindFirstChild("BillboardGui", true)
+                      and machine.BenchRewardPart.BenchPart.BillboardPart.BillboardGui:FindFirstChild("DnaMachineLabel", true)
+    
+    return machine, billboard
 end
 
 -- Main Dino Egg loop
@@ -791,13 +771,9 @@ local function startDinoLoop()
     
     dinoLoop = coroutine.create(function()
         while dinoEggToggle and dinoEggToggle.Value do
-            -- Update dropdown first to remove any missing pets
-            updateDinoDropdown()
-            
-            -- Check if we have any selected pets left
-            if next(selectedPets) == nil then
-                sendNotification("GAG Script", "No selected pets left for Dino Machine!", 5)
-                dinoFrame.Visible = false
+            local machine, billboard = getDinoMachine()
+            if not machine or not billboard then
+                dinoTimerText.Text = "Machine not found"
                 task.wait(5)
                 continue
             end
