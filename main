@@ -616,7 +616,7 @@ local function sacrificePet(petString)
     end
     
     local billboard = benchReward.BenchPart.BillboardPart.BillboardGui.DnaMachineLabel
-    if not billboard or billboard.Text ~= "READY" then
+    if not billboard or billboard.Text ~= "Trade Pets for Dinos" then
         sendNotification("GAG Script", "AutoEggDino is ON, it will automate sacrificing pets after waiting for ["..(billboard and billboard.Text or "UNKNOWN").."]", 5)
         return false
     end
