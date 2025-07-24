@@ -1,0 +1,586 @@
+local repo = 'https://raw.githubusercontent.com/Phynomie/LinoriaLib/refs/heads/main/'
+
+-- Load the library with error handling
+local Library, ThemeManager, SaveManager
+local success, err = pcall(function()
+    Library = loadstring(game:HttpGet(repo .. 'Library.lua'))()
+    ThemeManager = loadstring(game:HttpGet(repo .. 'addons/ThemeManager.lua'))()
+    SaveManager = loadstring(game:HttpGet(repo .. 'addons/SaveManager.lua'))()
+end)
+
+if not success then
+    error("Failed to load LinoriaLib: " .. tostring(err))
+end
+
+-- Create the window
+local Window = Library:CreateWindow({
+    Title = 'ESP System v2',
+    Center = true,
+    AutoShow = true,
+    TabPadding = 8,
+    MenuFadeTime = 0.2
+})
+
+local Tabs = {
+    Main = Window:AddTab('Main'),
+    ['UI Settings'] = Window:AddTab('UI Settings'),
+}
+
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox("Menu")
+MenuGroup:AddLabel("Menu bind"):AddKeyPicker("MenuKeybind", { 
+    Default = "Return", 
+    NoUI = true, 
+    Text = "Menu keybind" 
+})
+
+Library.ToggleKeybind = Options.MenuKeybind
+
+-- ESP System
+local Players = game:GetService("Players")
+local LocalPlayer = Players.LocalPlayer
+local RunService = game:GetService("RunService")
+local ESPObjects = {}
+
+-- Team Colors (customize these as needed)
+local TEAM_COLORS = {
+    ["Medical Department"] = Color3.fromRGB(0, 255, 255),
+    ["Scientific Department"] = Color3.fromRGB(192, 192, 192),
+    ["Class-D"] = Color3.fromRGB(255, 165, 0),
+    ["Mobile Task Force"] = Color3.fromRGB(0, 0, 255),
+    ["Internal Security Department"] = Color3.fromRGB(255, 192, 203),
+    ["Intelligence Agency"] = Color3.fromRGB(128, 0, 128),
+    ["Rapid Response Team"] = Color3.fromRGB(220, 20, 60),
+    ["Security Department"] = Color3.fromRGB(192, 192, 192),
+    ["O5"] = Color3.fromRGB(255, 0, 0),
+    ["Site Director"] = Color3.fromRGB(0, 255, 0),
+    ["Chaos Insurgency"] = Color3.fromRGB(0, 0, 0)
+}
+
+-- Configuration
+local ESP_CONFIG = {
+    Enabled = false,
+    TextSize = 14,
+    Font = Enum.Font.GothamBold,
+    TextOutlineColor = Color3.new(0, 0, 0),
+    TextOutlineTransparency = 0,
+    BoxTransparency = 0.7,
+    ShowDistance = true,
+    ShowHealth = true,
+    ShowRole = true
+}
+
+-- Define functions first to avoid nil errors
+local function getTeamColor(player)
+    return player and player.Team and TEAM_COLORS[player.Team.Name] or Color3.fromRGB(0, 255, 0)
+end
+
+local function getTeamName(player)
+    return player and player.Team and player.Team.Name or "No Team"
+end
+
+local PlayerTracker = {
+    PendingPlayers = {},
+    ActivePlayers = {}
+}
+
+local function TrackPlayer(player)
+    if PlayerTracker.ActivePlayers[player] then return end
+    
+    PlayerTracker.PendingPlayers[player] = true
+    PlayerTracker.ActivePlayers[player] = {
+        Connections = {},
+        State = "Joining"
+    }
+    
+    -- Monitor team changes for loading players
+    local function MonitorTeam()
+        while player and player.Parent and player.Team and player.Team.Name == "Loading" do
+            task.wait(1)
+        end
+        if player and player.Parent then
+            CreateESP(player)
+        end
+    end
+    
+    -- Monitor character lifecycle
+    local function MonitorCharacter()
+        if player.Character then
+            CreateESP(player)
+        end
+        
+        local charAddedConn = player.CharacterAdded:Connect(function(character)
+            CreateESP(player)
+        end)
+        table.insert(PlayerTracker.ActivePlayers[player].Connections, charAddedConn)
+    end
+    
+    -- Monitor player removal
+    local function MonitorRemoval()
+        player.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                RemoveESP(player)
+                PlayerTracker.ActivePlayers[player] = nil
+            end
+        end)
+    end
+    
+    -- Start monitoring
+    task.spawn(MonitorTeam)
+    task.spawn(MonitorCharacter)
+    task.spawn(MonitorRemoval)
+end
+
+local function removeESP(player)
+    if not PlayerTracker.ActivePlayers[player] then return end
+    if not ESPObjects[player] then return end
+    
+    local esp = ESPObjects[player]
+    
+    -- Clean up visuals
+    for _, highlight in ipairs(esp.highlights or {}) do
+        pcall(function() highlight:Destroy() end)
+    end
+    
+    if esp.billboard then
+        pcall(function() esp.billboard:Destroy() end)
+    end
+    
+    -- Disconnect events
+    for _, conn in ipairs(esp.connections or {}) do
+        pcall(function() conn:Disconnect() end)
+    end
+    
+    ESPObjects[player] = nil
+    PlayerTracker.ActivePlayers[player].State = "Inactive"
+end
+
+task.spawn(function()
+    while task.wait(5) do
+        -- Check for any players that might have been missed
+        for _, player in ipairs(Players:GetPlayers()) do
+            if not PlayerTracker.ActivePlayers[player] then
+                TrackPlayer(player)
+            elseif PlayerTracker.ActivePlayers[player].State ~= "Active" then
+                CreateESP(player)
+            end
+        end
+    end
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    TrackPlayer(player)
+end
+
+Players.PlayerAdded:Connect(TrackPlayer)
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+    PlayerTracker.ActivePlayers[player] = nil
+end)
+
+local function createESP(player)
+    if not PlayerTracker.ActivePlayers[player] then return end
+    if PlayerTracker.ActivePlayers[player].State == "Active" then return end
+    
+    -- Wait for valid conditions
+    if player.Team and player.Team.Name == "Loading" then
+        repeat task.wait(1) until not player or not player.Parent or not player.Team or player.Team.Name ~= "Loading"
+    end
+    if player == LocalPlayer or not ESP_CONFIG.Enabled then return end
+    if ESPObjects[player] then return end
+
+    local function waitForValidTeam()
+        -- Wait until player has a valid team (not "Loading")
+        while player and player.Team and player.Team.Name == "Loading" do
+            task.wait(0.5)
+        end
+    end
+    
+    local function setupCharacter(character)
+        if not character or not character.Parent then return end
+        
+        -- Wait for necessary parts
+        local humanoid = character:FindFirstChildOfClass("Humanoid")
+        local rootPart = character:FindFirstChild("HumanoidRootPart")
+        
+        if not humanoid or not rootPart then
+            local connections = {}
+            local humanoidFound, rootPartFound = false, false
+            
+            local function checkAndSetup()
+                if humanoidFound and rootPartFound then
+                    for _, conn in pairs(connections) do
+                        pcall(function() conn:Disconnect() end)
+                    end
+                    setupCharacter(character)
+                end
+            end
+            
+            table.insert(connections, character.ChildAdded:Connect(function(child)
+                if child:IsA("Humanoid") then
+                    humanoidFound = true
+                    humanoid = child
+                    checkAndSetup()
+                elseif child.Name == "HumanoidRootPart" then
+                    rootPartFound = true
+                    rootPart = child
+                    checkAndSetup()
+                end
+            end))
+            
+            -- Timeout after 5 seconds
+            delay(5, function()
+                if not humanoid or not rootPart then
+                    for _, conn in pairs(connections) do
+                        pcall(function() conn:Disconnect() end)
+                    end
+                end
+            end)
+            
+            return
+        end
+        
+        -- Clean up existing ESP
+        removeESP(player)
+        
+        -- Get team info
+        local teamColor = getTeamColor(player)
+        local teamName = getTeamName(player)
+        
+        -- Create ESP container
+        local esp = {
+            player = player,
+            character = character,
+            highlights = {},
+            connections = {}
+        }
+        
+        -- Create highlight
+        local highlight = Instance.new("Highlight")
+        highlight.Name = player.Name .. "_ESP"
+        highlight.FillColor = teamColor
+        highlight.FillTransparency = ESP_CONFIG.BoxTransparency
+        highlight.OutlineColor = teamColor
+        highlight.OutlineTransparency = 0
+        highlight.Adornee = character
+        highlight.Parent = character
+        table.insert(esp.highlights, highlight)
+        
+        -- Create billboard
+        local billboard = Instance.new("BillboardGui")
+        billboard.Name = player.Name .. "_NameTag"
+        billboard.Adornee = rootPart
+        billboard.Size = UDim2.new(0, 200, 0, 80)
+        billboard.StudsOffset = Vector3.new(0, 3.5, 0)
+        billboard.AlwaysOnTop = true
+        billboard.MaxDistance = 10000
+        billboard.Parent = character
+        esp.billboard = billboard
+        
+        -- Add labels
+        local roleLabel = Instance.new("TextLabel")
+        roleLabel.Name = "RoleLabel"
+        roleLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        roleLabel.Position = UDim2.new(0, 0, 0, 0)
+        roleLabel.BackgroundTransparency = 1
+        roleLabel.Text = ESP_CONFIG.ShowRole and teamName or ""
+        roleLabel.TextColor3 = teamColor
+        roleLabel.TextSize = ESP_CONFIG.TextSize
+        roleLabel.Font = ESP_CONFIG.Font
+        roleLabel.TextStrokeColor3 = ESP_CONFIG.TextOutlineColor
+        roleLabel.TextStrokeTransparency = ESP_CONFIG.TextOutlineTransparency
+        roleLabel.Parent = billboard
+        
+        local nameLabel = Instance.new("TextLabel")
+        nameLabel.Name = "NameLabel"
+        nameLabel.Size = UDim2.new(1, 0, 0.3, 0)
+        nameLabel.Position = UDim2.new(0, 0, 0.3, 0)
+        nameLabel.BackgroundTransparency = 1
+        nameLabel.Text = player.Name
+        nameLabel.TextColor3 = Color3.new(1, 1, 1)
+        nameLabel.TextSize = ESP_CONFIG.TextSize
+        nameLabel.Font = ESP_CONFIG.Font
+        nameLabel.TextStrokeColor3 = ESP_CONFIG.TextOutlineColor
+        nameLabel.TextStrokeTransparency = ESP_CONFIG.TextOutlineTransparency
+        nameLabel.Parent = billboard
+        
+        local infoLabel = Instance.new("TextLabel")
+        infoLabel.Name = "InfoLabel"
+        infoLabel.Size = UDim2.new(1, 0, 0.4, 0)
+        infoLabel.Position = UDim2.new(0, 0, 0.6, 0)
+        infoLabel.BackgroundTransparency = 1
+        infoLabel.TextColor3 = Color3.new(1, 1, 1)
+        infoLabel.TextSize = ESP_CONFIG.TextSize - 2
+        infoLabel.Font = ESP_CONFIG.Font
+        infoLabel.TextStrokeColor3 = ESP_CONFIG.TextOutlineColor
+        infoLabel.TextStrokeTransparency = ESP_CONFIG.TextOutlineTransparency
+        infoLabel.Parent = billboard
+        
+        -- Update function
+        local function updateESP()
+            if not character or not character.Parent or not rootPart or not rootPart.Parent then
+                return
+            end
+            
+            -- Update team info
+            local newTeamColor = getTeamColor(player)
+            local newTeamName = getTeamName(player)
+            
+            highlight.FillColor = newTeamColor
+            highlight.OutlineColor = newTeamColor
+            roleLabel.TextColor3 = newTeamColor
+            roleLabel.Text = ESP_CONFIG.ShowRole and newTeamName or ""
+            
+            -- Update distance and health
+            local distance = 0
+            if LocalPlayer.Character and LocalPlayer.Character:FindFirstChild("HumanoidRootPart") then
+                distance = (rootPart.Position - LocalPlayer.Character.HumanoidRootPart.Position).Magnitude
+            end
+            
+            local infoText = ""
+            if ESP_CONFIG.ShowDistance then
+                infoText = string.format("Dist: %.1f", distance)
+            end
+            if ESP_CONFIG.ShowHealth and humanoid then
+                infoText = infoText .. (infoText ~= "" and " | " or "") .. string.format("HP: %d/%d", humanoid.Health, humanoid.MaxHealth)
+            end
+            
+            infoLabel.Text = infoText
+        end
+
+        PlayerTracker.ActivePlayers[player].State = "Active"
+    
+    -- Setup death/respawn handler
+    local diedConn = humanoid.Died:Connect(function()
+        PlayerTracker.ActivePlayers[player].State = "Dead"
+        RemoveESP(player)
+        
+        local respawnConn
+        respawnConn = player.CharacterAdded:Connect(function()
+            if respawnConn then respawnConn:Disconnect() end
+            CreateESP(player)
+        end)
+        table.insert(PlayerTracker.ActivePlayers[player].Connections, respawnConn)
+    end)
+    table.insert(PlayerTracker.ActivePlayers[player].Connections, diedConn)
+    
+    -- Team change handler
+    local teamConn = player:GetPropertyChangedSignal("Team"):Connect(function()
+        task.wait(0.5) -- Allow team to fully change
+        CreateESP(player) -- Recreate ESP with new team colors
+    end)
+    table.insert(PlayerTracker.ActivePlayers[player].Connections, teamConn)
+        
+        -- Set up event connections
+        table.insert(esp.connections, RunService.Heartbeat:Connect(updateESP))
+        table.insert(esp.connections, player:GetPropertyChangedSignal("Team"):Connect(updateESP))
+        
+        table.insert(esp.connections, humanoid.Died:Connect(function()
+            removeESP(player)
+            
+            local respawnConn
+            respawnConn = player.CharacterAdded:Connect(function(newChar)
+                respawnConn:Disconnect()
+                setupCharacter(newChar)
+            end)
+        end))
+        
+        table.insert(esp.connections, player.CharacterRemoving:Connect(function()
+            removeESP(player)
+        end))
+        
+        ESPObjects[player] = esp
+    end
+
+    local teamChangedConn
+    teamChangedConn = player:GetPropertyChangedSignal("Team"):Connect(function()
+        if player.Character and ESPObjects[player] then
+            -- If team changes and character exists, update ESP
+            removeESP(player)
+            setupCharacter(player.Character)
+        end
+    end)
+
+    -- Store this connection for cleanup
+    table.insert(ESPObjects[player] or {}, teamChangedConn)
+
+    
+    -- Initial setup
+    if player.Character then
+        setupCharacter(player.Character)
+    end
+    
+    -- Connect character added event
+    player.CharacterAdded:Connect(function(character)
+        setupCharacter(character)
+    end)
+end
+
+local function updateAllESP()
+    for player, esp in pairs(ESPObjects) do
+        if esp and esp.billboard then
+            local roleLabel = esp.billboard:FindFirstChild("RoleLabel")
+            if roleLabel then
+                roleLabel.Text = ESP_CONFIG.ShowRole and getTeamName(player) or ""
+            end
+        end
+    end
+end
+
+local function enableESP()
+    for _, player in ipairs(Players:GetPlayers()) do
+        createESP(player)
+    end
+end
+
+local function disableESP()
+    for player, _ in pairs(ESPObjects) do
+        removeESP(player)
+    end
+end
+
+-- Set up player connections
+Players.PlayerAdded:Connect(function(player)
+    createESP(player)
+end)
+
+Players.PlayerRemoving:Connect(function(player)
+    removeESP(player)
+end)
+
+local cleanupInstances = {
+    connections = {}
+}
+
+-- Add this to your Tabs.Main groupbox (with other toggles)
+local UtilityGroup = Tabs.Main:AddRightGroupbox('Utility')
+
+UtilityGroup:AddToggle('AntiAFK', {
+    Text = 'Anti-AFK',
+    Default = false,
+    Tooltip = 'Prevents getting kicked for inactivity',
+    Callback = function(enabled)
+        if enabled then
+            -- Disable all existing Idled connections
+            for _, connection in pairs(getconnections(game.Players.LocalPlayer.Idled)) do
+                connection:Disable()
+                -- Store disabled connections for re-enabling later
+                table.insert(cleanupInstances.connections, {
+                    connection = connection,
+                    enabled = connection.Enabled -- Store original state
+                })
+            end
+            
+            -- Store the loop in cleanup
+            cleanupInstances.connections["AntiAfkLoop"] = antiAfkLoop
+            
+            Library:Notify("Anti-AFK Enabled", "You won't be kicked for inactivity.", 5)
+        else
+            -- Re-enable original Idled connections
+            for _, connectionData in pairs(cleanupInstances.connections) do
+                if typeof(connectionData) == "table" and connectionData.connection then
+                    connectionData.connection.Enabled = connectionData.enabled
+                end
+            end
+            
+            -- Disconnect the activity loop
+            if cleanupInstances.connections["AntiAfkLoop"] then
+                cleanupInstances.connections["AntiAfkLoop"]:Disconnect()
+                cleanupInstances.connections["AntiAfkLoop"] = nil
+            end
+            
+            Library:Notify("Anti-AFK Disabled", "Normal AFK behavior restored.", 5)
+        end
+    end
+})
+
+-- UI Elements
+local ESPGroup = Tabs.Main:AddLeftGroupbox('ESP Settings')
+
+ESPGroup:AddToggle('ESPEnabled', {
+    Text = 'Enable ESP',
+    Default = false,
+    Tooltip = 'Toggle ESP system',
+    Callback = function(Value)
+        ESP_CONFIG.Enabled = Value
+        if Value then
+            enableESP()
+        else
+            disableESP()
+        end
+    end
+})
+
+ESPGroup:AddToggle('ShowDistance', {
+    Text = 'Show Distance',
+    Default = true,
+    Tooltip = 'Show distance to players',
+    Callback = function(Value)
+        ESP_CONFIG.ShowDistance = Value
+        updateAllESP()
+    end
+})
+
+ESPGroup:AddToggle('ShowHealth', {
+    Text = 'Show Health',
+    Default = true,
+    Tooltip = 'Show player health',
+    Callback = function(Value)
+        ESP_CONFIG.ShowHealth = Value
+        updateAllESP()
+    end
+})
+
+ESPGroup:AddToggle('ShowRole', {
+    Text = 'Show Role',
+    Default = true,
+    Tooltip = 'Show player team/role',
+    Callback = function(Value)
+        ESP_CONFIG.ShowRole = Value
+        updateAllESP()
+    end
+})
+
+-- UI Settings tab
+local MenuGroup = Tabs['UI Settings']:AddLeftGroupbox('Menu')
+
+MenuGroup:AddButton('Unload', function()
+    disableESP()
+    Library:Unload()
+end)
+
+Library:OnUnload(function()
+    print("Unloading ESP System...")
+    
+    -- Proper way to disconnect library events
+    if Library.Unloaded then
+        Library.Unloaded:Fire()
+        Library.Unloaded:Destroy()
+    end
+    
+    -- Clean up ESP objects
+    disableESP()
+    
+    -- Clean up Anti-AFK if active
+    if Toggles and Toggles.AntiAFK and Toggles.AntiAFK.Value then
+        for _, connectionData in pairs(cleanupInstances.connections) do
+            if typeof(connectionData) == "table" and connectionData.connection then
+                pcall(function() connectionData.connection.Enabled = connectionData.enabled end)
+            end
+        end
+        if cleanupInstances.connections["AntiAfkLoop"] then
+            pcall(function() cleanupInstances.connections["AntiAfkLoop"]:Disconnect() end)
+        end
+    end
+    
+    print("ESP System completely unloaded!")
+    Library.Unloaded = true
+end)
+
+-- Theme Manager
+ThemeManager:SetLibrary(Library)
+SaveManager:SetLibrary(Library)
+SaveManager:IgnoreThemeSettings()
+ThemeManager:SetFolder('ESPConfig')
+SaveManager:SetFolder('ESPConfig/' .. game.PlaceId)
+ThemeManager:ApplyToTab(Tabs['UI Settings'])
+SaveManager:BuildConfigSection(Tabs['UI Settings'])
