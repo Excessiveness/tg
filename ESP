@@ -103,16 +103,37 @@ local function TrackPlayer(player)
     end
     
     -- Monitor character lifecycle
-    local function MonitorCharacter()
-        if player.Character then
-            CreateESP(player)
+    local function MonitorCharacter(player)
+        -- First check if player is still valid
+        if not player or not player.Parent then
+            return
         end
-        
-        local charAddedConn = player.CharacterAdded:Connect(function(character)
-            CreateESP(player)
-        end)
-        table.insert(PlayerTracker.ActivePlayers[player].Connections, charAddedConn)
+
+        -- Create a connection for character added
+        local charAddedConn
+        charAddedConn = player.CharacterAdded:Connect(function(character)
+        -- Check again if player is still valid
+        if not player or not player.Parent then
+            if charAddedConn then
+                charAddedConn:Disconnect()
+            end
+            return
+        end
+        CreateESP(player)
+    end)
+
+    -- Check for existing character
+    if player.Character then
+        CreateESP(player)
     end
+
+    -- Store the connection for cleanup
+    if PlayerTracker.ActivePlayers[player] then
+        table.insert(PlayerTracker.ActivePlayers[player].Connections, charAddedConn)
+    else
+        charAddedConn:Disconnect()
+    end
+end
     
     -- Monitor player removal
     local function MonitorRemoval()
