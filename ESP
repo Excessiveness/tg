@@ -83,121 +83,6 @@ local PlayerTracker = {
     ActivePlayers = {}
 }
 
-local function TrackPlayer(player)
-    if PlayerTracker.ActivePlayers[player] then return end
-    
-    PlayerTracker.PendingPlayers[player] = true
-    PlayerTracker.ActivePlayers[player] = {
-        Connections = {},
-        State = "Joining"
-    }
-    
-    -- Monitor team changes for loading players
-    local function MonitorTeam()
-        while player and player.Parent and player.Team and player.Team.Name == "Loading" do
-            task.wait(1)
-        end
-        if player and player.Parent then
-            CreateESP(player)
-        end
-    end
-    
-    -- Monitor character lifecycle
-    local function MonitorCharacter(player)
-        -- First check if player is still valid
-        if not player or not player.Parent then
-            return
-        end
-
-        -- Create a connection for character added
-        local charAddedConn
-        charAddedConn = player.CharacterAdded:Connect(function(character)
-        -- Check again if player is still valid
-        if not player or not player.Parent then
-            if charAddedConn then
-                charAddedConn:Disconnect()
-            end
-            return
-        end
-        CreateESP(player)
-    end)
-
-    -- Check for existing character
-    if player.Character then
-        CreateESP(player)
-    end
-
-    -- Store the connection for cleanup
-    if PlayerTracker.ActivePlayers[player] then
-        table.insert(PlayerTracker.ActivePlayers[player].Connections, charAddedConn)
-    else
-        charAddedConn:Disconnect()
-    end
-end
-    
-    -- Monitor player removal
-    local function MonitorRemoval()
-        player.AncestryChanged:Connect(function(_, parent)
-            if not parent then
-                RemoveESP(player)
-                PlayerTracker.ActivePlayers[player] = nil
-            end
-        end)
-    end
-    
-    -- Start monitoring
-    task.spawn(MonitorTeam)
-    task.spawn(MonitorCharacter)
-    task.spawn(MonitorRemoval)
-end
-
-local function removeESP(player)
-    if not PlayerTracker.ActivePlayers[player] then return end
-    if not ESPObjects[player] then return end
-    
-    local esp = ESPObjects[player]
-    
-    -- Clean up visuals
-    for _, highlight in ipairs(esp.highlights or {}) do
-        pcall(function() highlight:Destroy() end)
-    end
-    
-    if esp.billboard then
-        pcall(function() esp.billboard:Destroy() end)
-    end
-    
-    -- Disconnect events
-    for _, conn in ipairs(esp.connections or {}) do
-        pcall(function() conn:Disconnect() end)
-    end
-    
-    ESPObjects[player] = nil
-    PlayerTracker.ActivePlayers[player].State = "Inactive"
-end
-
-task.spawn(function()
-    while task.wait(5) do
-        -- Check for any players that might have been missed
-        for _, player in ipairs(Players:GetPlayers()) do
-            if not PlayerTracker.ActivePlayers[player] then
-                TrackPlayer(player)
-            elseif PlayerTracker.ActivePlayers[player].State ~= "Active" then
-                CreateESP(player)
-            end
-        end
-    end
-end)
-
-for _, player in ipairs(Players:GetPlayers()) do
-    TrackPlayer(player)
-end
-
-Players.PlayerAdded:Connect(TrackPlayer)
-Players.PlayerRemoving:Connect(function(player)
-    RemoveESP(player)
-    PlayerTracker.ActivePlayers[player] = nil
-end)
-
 local function createESP(player)
     if not PlayerTracker.ActivePlayers[player] then return end
     if PlayerTracker.ActivePlayers[player].State == "Active" then return end
@@ -435,6 +320,121 @@ local function createESP(player)
         setupCharacter(character)
     end)
 end
+
+local function TrackPlayer(player)
+    if PlayerTracker.ActivePlayers[player] then return end
+    
+    PlayerTracker.PendingPlayers[player] = true
+    PlayerTracker.ActivePlayers[player] = {
+        Connections = {},
+        State = "Joining"
+    }
+    
+    -- Monitor team changes for loading players
+    local function MonitorTeam()
+        while player and player.Parent and player.Team and player.Team.Name == "Loading" do
+            task.wait(1)
+        end
+        if player and player.Parent then
+            CreateESP(player)
+        end
+    end
+    
+    -- Monitor character lifecycle
+    local function MonitorCharacter(player)
+        -- First check if player is still valid
+        if not player or not player.Parent then
+            return
+        end
+
+        -- Create a connection for character added
+        local charAddedConn
+        charAddedConn = player.CharacterAdded:Connect(function(character)
+        -- Check again if player is still valid
+        if not player or not player.Parent then
+            if charAddedConn then
+                charAddedConn:Disconnect()
+            end
+            return
+        end
+        CreateESP(player)
+    end)
+
+    -- Check for existing character
+    if player.Character then
+        CreateESP(player)
+    end
+
+    -- Store the connection for cleanup
+    if PlayerTracker.ActivePlayers[player] then
+        table.insert(PlayerTracker.ActivePlayers[player].Connections, charAddedConn)
+    else
+        charAddedConn:Disconnect()
+    end
+end
+    
+    -- Monitor player removal
+    local function MonitorRemoval()
+        player.AncestryChanged:Connect(function(_, parent)
+            if not parent then
+                RemoveESP(player)
+                PlayerTracker.ActivePlayers[player] = nil
+            end
+        end)
+    end
+    
+    -- Start monitoring
+    task.spawn(MonitorTeam)
+    task.spawn(MonitorCharacter)
+    task.spawn(MonitorRemoval)
+end
+
+local function removeESP(player)
+    if not PlayerTracker.ActivePlayers[player] then return end
+    if not ESPObjects[player] then return end
+    
+    local esp = ESPObjects[player]
+    
+    -- Clean up visuals
+    for _, highlight in ipairs(esp.highlights or {}) do
+        pcall(function() highlight:Destroy() end)
+    end
+    
+    if esp.billboard then
+        pcall(function() esp.billboard:Destroy() end)
+    end
+    
+    -- Disconnect events
+    for _, conn in ipairs(esp.connections or {}) do
+        pcall(function() conn:Disconnect() end)
+    end
+    
+    ESPObjects[player] = nil
+    PlayerTracker.ActivePlayers[player].State = "Inactive"
+end
+
+task.spawn(function()
+    while task.wait(5) do
+        -- Check for any players that might have been missed
+        for _, player in ipairs(Players:GetPlayers()) do
+            if not PlayerTracker.ActivePlayers[player] then
+                TrackPlayer(player)
+            elseif PlayerTracker.ActivePlayers[player].State ~= "Active" then
+                CreateESP(player)
+            end
+        end
+    end
+end)
+
+for _, player in ipairs(Players:GetPlayers()) do
+    TrackPlayer(player)
+end
+
+Players.PlayerAdded:Connect(TrackPlayer)
+Players.PlayerRemoving:Connect(function(player)
+    RemoveESP(player)
+    PlayerTracker.ActivePlayers[player] = nil
+end)
 
 local function updateAllESP()
     for player, esp in pairs(ESPObjects) do
